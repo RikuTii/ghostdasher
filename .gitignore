@@ -1,0 +1,6 @@
+ghostdasher.sln
+.vs/*
+ghostdasher/x64/*
+x64/*
+ghostdasher.vcxproj*
+assets/*
