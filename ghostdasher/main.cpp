@@ -7,12 +7,39 @@ int main()
 
     sf::ContextSettings settings;
     settings.antialiasingLevel = 8;
-    sf::RenderWindow window(sf::VideoMode(1200, 600), "Ghostdasher",sf::Style::Default, settings);
+
+    sf::RenderWindow window(sf::VideoMode(1200, 600), "Ghostdasher", sf::Style::Default, settings);
+    window.setFramerateLimit(120);
+
     sf::CircleShape shape(100.f);
     shape.setFillColor(sf::Color::Red);
     sf::Clock clock;
     sf::Font font;
     srand(time(0));
+
+    sf::RectangleShape base_map;
+    base_map.setFillColor(sf::Color::Black);
+    base_map.setSize(sf::Vector2f(1000, 1000));
+
+
+
+    sf::RectangleShape obstacle;
+    obstacle.setFillColor(sf::Color::Cyan);
+    obstacle.setSize(sf::Vector2f(300, 300));
+    obstacle.setPosition(sf::Vector2f(400, 400));
+
+
+
+    sf::RectangleShape obstacle2;
+    obstacle2.setFillColor(sf::Color::Yellow);
+    obstacle2.setSize(sf::Vector2f(150, 300));
+    obstacle2.setPosition(sf::Vector2f(200, 200));
+
+    sf::RectangleShape obstacle3;
+    obstacle3.setFillColor(sf::Color::Magenta);
+    obstacle3.setSize(sf::Vector2f(300, 80));
+    obstacle3.setPosition(sf::Vector2f(200, 600));
+
     m_resourceManager = std::make_unique<ResourceManager>();
 
     m_resourceManager->Loadresources();
@@ -20,19 +47,16 @@ int main()
     std::unique_ptr<EntityManager> m_entityManager = std::make_unique<EntityManager>();
 
 
-    std::unique_ptr<Entity> my_entity = std::make_unique<Entity>();
-    
-    //std::unique_ptr<Entity> my_entity_2nd = std::make_unique<Entity>();
+   World* world = m_entityManager->CreateWorld();
 
-    std::shared_ptr<Entity> lol_ent =  m_entityManager->AddEntity(std::move(my_entity));
- //   m_entityManager->AddEntity(std::move(my_entity_2nd));
+   Entity* player_entity =  m_entityManager->AddEntity(std::make_unique<Entity>());
 
     sf::Text fps;
     fps.setFillColor(sf::Color::White);
     fps.setCharacterSize(26);
     fps.setFont(m_resourceManager->GetPrimaryFont());
     fps.setPosition(0, 0);
-    fps.setString("hello");
+    fps.setString("");
     float shape_x = 0.0f;
 
     std::deque<float> m_frameSmaples;
@@ -67,9 +91,9 @@ int main()
 
         window.setView(gameView);
 
-        gameView.setCenter(lol_ent->GetPosition());
+        gameView.setCenter(player_entity->GetPosition());
 
-        line[0].position = lol_ent->GetPosition();
+        line[0].position = player_entity->GetPosition();
 
         m_entityManager->ProcessEntityLogic(elapsed.asSeconds());
 
@@ -96,7 +120,21 @@ int main()
             vel_y = speed;
 
         }
-        lol_ent->SetVelocity(sf::Vector2f(vel_x, vel_y));
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::F))
+        {
+            player_entity->ResetOrigin();
+        }
+
+
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+        {
+            vel_x *= 10;
+
+            vel_y *= 10;
+
+        }
+        player_entity->SetVelocity(sf::Vector2f(vel_x, vel_y));
 
 
         vel_y = 0.0f;
@@ -133,7 +171,11 @@ int main()
         last_frametime = elapsed.asSeconds();
       
         window.clear(sf::Color(43,43,43));
-        window.draw(line);
+        world->Render(window);
+        //window.draw(line);
+        window.draw(obstacle);
+        window.draw(obstacle2);
+        window.draw(obstacle3);
 
         window.draw(shape);
         m_entityManager->RenderEntities(window);
