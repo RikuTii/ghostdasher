@@ -1,6 +1,7 @@
 #include "resourcemanager.h"
 #include "entity.h"
 #include "entitymanager.h"
+#include "inputcontroller.h"
 
 int main()
 {
@@ -10,12 +11,9 @@ int main()
 
     sf::RenderWindow window(sf::VideoMode(1200, 600), "Ghostdasher", sf::Style::Default, settings);
     window.setFramerateLimit(120);
-
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Red);
     sf::Clock clock;
-    sf::Font font;
-    srand(time(0));
+
+    srand((int)time(0));
 
     sf::RectangleShape base_map;
     base_map.setFillColor(sf::Color::Black);
@@ -49,7 +47,17 @@ int main()
 
    World* world = m_entityManager->CreateWorld();
 
-   Entity* player_entity =  m_entityManager->AddEntity(std::make_unique<Entity>());
+   LocalPlayer* localplayer = m_entityManager->CreateLocalPlayer();
+
+   std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
+
+
+   m_entityManager->AddEntity(std::make_unique<Entity>());
+   m_entityManager->AddEntity(std::make_unique<Entity>());
+   m_entityManager->AddEntity(std::make_unique<Entity>());
+   m_entityManager->AddEntity(std::make_unique<Entity>());
+
+
 
     sf::Text fps;
     fps.setFillColor(sf::Color::White);
@@ -62,20 +70,12 @@ int main()
     std::deque<float> m_frameSmaples;
     float last_frametime = 0.0f;
 
-    float vel_x = 0.0f;
-    float vel_y = 0.0f;
-    
-
     sf::View view = window.getDefaultView();
-  
     view.setSize(sf::Vector2f(view.getSize().x, view.getSize().y));
 
     sf::View gameView = window.getDefaultView();
 
-    sf::VertexArray line(sf::Lines, 2);
 
-    line[0].color = sf::Color::Red;
-    line[1].color = sf::Color::Red;
 
     while (window.isOpen())
     {
@@ -86,65 +86,46 @@ int main()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-        }
 
+            if (event.type == sf::Event::KeyReleased)
+            {
+                if (event.key.code == sf::Keyboard::F)
+                {
+                    m_entityManager->ResetAll();
+                    m_entityManager->AddEntity(std::make_unique<Entity>());
+                    m_entityManager->AddEntity(std::make_unique<Entity>());
+                    m_entityManager->AddEntity(std::make_unique<Entity>());
+                    m_entityManager->AddEntity(std::make_unique<Entity>());
+                }
+            }
+        }
 
         window.setView(gameView);
+        gameView.setCenter(localplayer->GetPosition());
 
-        gameView.setCenter(player_entity->GetPosition());
-
-        line[0].position = player_entity->GetPosition();
 
         m_entityManager->ProcessEntityLogic(elapsed.asSeconds());
+        localplayer->Process(elapsed.asSeconds());
 
-        const float speed = 700.0f;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+
+
+        inputcontroller->ReadInput(elapsed.asSeconds());
+
+        for (int i = 0; i < m_entityManager->GetHighestEntityIndex(); i++)
         {
-             vel_x = -speed;
+            Entity* ent = m_entityManager->GetEntity(i);
+            if (ent)
+            {
+               sf::Vector2f dist = (localplayer->GetPosition() - ent->GetPosition());
+
+                float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
+                if (localplayer->CheckSwordCollision(ent->GetBounds()))
+                {
+                    ent->Delete();
+                }
+            }
         }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-        {
-            vel_x = speed;
-
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-        {
-            vel_y = -speed;
-
-        }
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-        {
-            vel_y = speed;
-
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::F))
-        {
-            player_entity->ResetOrigin();
-        }
-
-
-
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
-        {
-            vel_x *= 10;
-
-            vel_y *= 10;
-
-        }
-        player_entity->SetVelocity(sf::Vector2f(vel_x, vel_y));
-
-
-        vel_y = 0.0f;
-
-        vel_x = 0.0f;
-
-        line[1].position = sf::Vector2f(0, 0);
-        shape.setPosition(sf::Vector2f(shape_x, 0.0f));
-
-        shape_x += elapsed.asMicroseconds() * 0.001f;
+       
 
         m_frameSmaples.push_back(elapsed.asSeconds());
 
@@ -172,20 +153,18 @@ int main()
       
         window.clear(sf::Color(43,43,43));
         world->Render(window);
-        //window.draw(line);
+        localplayer->Render(window);
+
         window.draw(obstacle);
         window.draw(obstacle2);
         window.draw(obstacle3);
 
-        window.draw(shape);
         m_entityManager->RenderEntities(window);
-
         window.setView(view);
-  
-
         window.draw(fps);
-
         window.display();
+
+        m_entityManager->DeleteMarkedEntities();
     }
 
 	return 0;
