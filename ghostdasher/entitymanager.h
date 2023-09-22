@@ -2,13 +2,14 @@
 #include "global-includes.h"
 #include "entity.h"
 #include "world.h"
+#include "hostile.h"
 #include "localplayer.h"
+#include "entitymanager.h"
 
 class EntityManager
 {
 public:
 	EntityManager();
-
 	Entity* AddEntity(std::unique_ptr<Entity> entity);
 	void RenderEntities(sf::RenderWindow& window);
 	void ProcessEntityLogic(float frameTime);
@@ -40,3 +41,5 @@ private:
 	std::unique_ptr<World> m_world;
 	size_t m_highest_entity_index;
 };
+
+extern std::unique_ptr<EntityManager> m_entityManager;

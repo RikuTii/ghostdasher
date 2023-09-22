@@ -11,9 +11,10 @@ enum RenderState
 
 enum EntityType
 {
-	General,
-	Localplayer,
-	Player
+	GeneralEntity,
+	LocalplayerEntity,
+	PlayerEntity,
+	HostileEntity,
 };
 
 enum FacingDirection
@@ -22,4 +23,13 @@ enum FacingDirection
 	Down,
 	Left,
 	Right
+};
+
+enum IntersectionDirection
+{
+	InteresectNone,
+	InteresecLeft,
+	InteresecUp,
+	InteresecRight,
+	InteresecDown
 };

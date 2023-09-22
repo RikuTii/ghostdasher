@@ -6,5 +6,6 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <filesystem>
 
 class ResourceManager;

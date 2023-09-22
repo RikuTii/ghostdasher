@@ -5,10 +5,13 @@ class Entity
 {
 public:
 	Entity();
-	void Render(sf::RenderWindow& renderWindow);
-	void SetPosition(const sf::Vector2f& pos);
-	void Process(float frameTime);
-	void SetVelocity(const sf::Vector2f& vel);
+	virtual ~Entity() {};
+	virtual void Render(sf::RenderWindow& renderWindow);
+	virtual void SetPosition(const sf::Vector2f& pos);
+	virtual void Process(float frameTime);
+	virtual void SetVelocity(const sf::Vector2f& vel);
+	virtual void SetGoalVelocity(const sf::Vector2f& vel);
+
 	sf::Vector2f GetPosition()
 	{
 		return m_position;
@@ -19,7 +22,12 @@ public:
 		return m_velocity_goal;
 	}
 
-	sf::FloatRect GetBounds()
+	sf::Vector2f GetVelocity()
+	{
+		return m_velocity;
+	}
+
+	virtual sf::FloatRect GetBounds()
 	{
 		return m_shape->getGlobalBounds();
 	}
@@ -37,6 +45,11 @@ public:
 	void SetRenderState(RenderState state)
 	{
 		m_render_state = state;
+	}
+
+	EntityType GetType()
+	{
+		return m_type;
 	}
 
 	size_t GetEntityIndex()

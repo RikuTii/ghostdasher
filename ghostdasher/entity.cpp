@@ -10,7 +10,7 @@ Entity::Entity()
 	m_shape->setPosition(m_position);
 	m_shape->setFillColor(sf::Color::White);
 	m_render_state = RenderState::Draw;
-	m_type = EntityType::General;
+	m_type = EntityType::GeneralEntity;
 }
 
 
@@ -37,6 +37,12 @@ void Entity::SetPosition(const sf::Vector2f& pos)
 }
 
 void Entity::SetVelocity(const sf::Vector2f& vel)
+{
+	m_velocity = vel;
+}
+
+
+void Entity::SetGoalVelocity(const sf::Vector2f& vel)
 {
 	m_velocity_goal = vel;
 }

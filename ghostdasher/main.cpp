@@ -1,7 +1,12 @@
 #include "resourcemanager.h"
 #include "entity.h"
+#include "hostile.h"
 #include "entitymanager.h"
 #include "inputcontroller.h"
+
+#include <tmxlite/Map.hpp>
+
+#include "SFMLMapRender.h"
 
 int main()
 {
@@ -14,11 +19,6 @@ int main()
     sf::Clock clock;
 
     srand((int)time(0));
-
-    sf::RectangleShape base_map;
-    base_map.setFillColor(sf::Color::Black);
-    base_map.setSize(sf::Vector2f(1000, 1000));
-
 
 
     sf::RectangleShape obstacle;
@@ -42,7 +42,7 @@ int main()
 
     m_resourceManager->Loadresources();
 
-    std::unique_ptr<EntityManager> m_entityManager = std::make_unique<EntityManager>();
+   m_entityManager = std::make_unique<EntityManager>();
 
 
    World* world = m_entityManager->CreateWorld();
@@ -52,10 +52,10 @@ int main()
    std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
 
 
-   m_entityManager->AddEntity(std::make_unique<Entity>());
-   m_entityManager->AddEntity(std::make_unique<Entity>());
-   m_entityManager->AddEntity(std::make_unique<Entity>());
-   m_entityManager->AddEntity(std::make_unique<Entity>());
+   m_entityManager->AddEntity(std::make_unique<Hostile>());
+   //m_entityManager->AddEntity(std::make_unique<Entity>());
+   //m_entityManager->AddEntity(std::make_unique<Entity>());
+   //m_entityManager->AddEntity(std::make_unique<Entity>());
 
 
 
@@ -65,7 +65,6 @@ int main()
     fps.setFont(m_resourceManager->GetPrimaryFont());
     fps.setPosition(0, 0);
     fps.setString("");
-    float shape_x = 0.0f;
 
     std::deque<float> m_frameSmaples;
     float last_frametime = 0.0f;
@@ -75,6 +74,29 @@ int main()
 
     sf::View gameView = window.getDefaultView();
 
+    gameView.zoom(2);
+    sf::RectangleShape start;
+
+
+    tmx::Map map;
+    map.load("../assets/untitled.tmx");
+
+    MapLayer layerZero(map, 0);
+    MapLayer layerDepth(map, 2);
+
+    const auto& layers = map.getLayers();
+    for (const auto& layer : layers)
+    {
+        if (layer->getType() == tmx::Layer::Type::Object)
+        {
+            const auto& objects = layer->getLayerAs<tmx::ObjectGroup>().getObjects();
+            for (const auto& object : objects)
+            {
+                tmx::FloatRect aabb = object.getAABB();
+                world->AddUnwalkableSpace(sf::FloatRect(aabb.left, aabb.top, aabb.width, aabb.height));
+            }
+        }
+    }
 
 
     while (window.isOpen())
@@ -92,10 +114,10 @@ int main()
                 if (event.key.code == sf::Keyboard::F)
                 {
                     m_entityManager->ResetAll();
-                    m_entityManager->AddEntity(std::make_unique<Entity>());
-                    m_entityManager->AddEntity(std::make_unique<Entity>());
-                    m_entityManager->AddEntity(std::make_unique<Entity>());
-                    m_entityManager->AddEntity(std::make_unique<Entity>());
+                    m_entityManager->AddEntity(std::make_unique<Hostile>());
+                    m_entityManager->AddEntity(std::make_unique<Hostile>());
+                    m_entityManager->AddEntity(std::make_unique<Hostile>());
+                    m_entityManager->AddEntity(std::make_unique<Hostile>());
                 }
             }
         }
@@ -107,21 +129,45 @@ int main()
         m_entityManager->ProcessEntityLogic(elapsed.asSeconds());
         localplayer->Process(elapsed.asSeconds());
 
-
-
         inputcontroller->ReadInput(elapsed.asSeconds());
 
         for (int i = 0; i < m_entityManager->GetHighestEntityIndex(); i++)
         {
             Entity* ent = m_entityManager->GetEntity(i);
-            if (ent)
+            if (ent  && ent->GetType() == EntityType::HostileEntity)
             {
-               sf::Vector2f dist = (localplayer->GetPosition() - ent->GetPosition());
+               Hostile* hostile = static_cast<Hostile*>(ent);
+
+               sf::Vector2f dist = (localplayer->GetPosition() - hostile->GetPosition());
 
                 float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
-                if (localplayer->CheckSwordCollision(ent->GetBounds()))
+
+                start.setPosition(localplayer->GetPosition());
+                start.setSize(sf::Vector2f(1, dist_len));
+                sf::Vector2f additional = rand() % 100 < 10 ? sf::Vector2f((float)(rand() % 500), (float)(rand() % 500)) : sf::Vector2f(0, 0);
+                sf::Vector2f delta = (localplayer->GetPosition() - hostile->GetPosition());
+
+                
+                float angle = atan2f(hostile->GetPosition().x - start.getPosition().x, hostile->GetPosition().y - start.getPosition().y) * 180 / 3.14f;
+                start.setRotation(-angle);
+      
+                if (!world->DoesIntersectWall(start.getGlobalBounds()))
                 {
-                    ent->Delete();
+                    hostile->SetPosition(hostile->GetPosition() + delta / (elapsed.asSeconds() * 10000));
+                }
+                else
+                {
+                    //std::cout << "does interesect" << std::endl;
+
+                }
+
+                if (localplayer->CheckSwordCollision(hostile->GetBounds()))
+                {
+                    std::cout << "hit ent " << ent->GetPosition().x << std::endl;;
+                    hostile->SetPosition(hostile->GetPosition() - sf::Vector2f(delta.x * 2, delta.y*2) / (elapsed.asSeconds() * 300));
+                    hostile->TakeDamage(50);
+
+                 
                 }
             }
         }
@@ -141,13 +187,7 @@ int main()
         }
 
         const int average_fps = static_cast<int>(1.0f / (avg / m_frameSmaples.size()));
-
         fps.setString("FPS " + std::to_string(average_fps));
-
-        if (shape_x > window.getSize().x)
-        {
-            shape_x = 0.0f;
-        }
 
         last_frametime = elapsed.asSeconds();
       
@@ -158,6 +198,9 @@ int main()
         window.draw(obstacle);
         window.draw(obstacle2);
         window.draw(obstacle3);
+        window.draw(start);
+        window.draw(layerZero);
+        window.draw(layerDepth);
 
         m_entityManager->RenderEntities(window);
         window.setView(view);

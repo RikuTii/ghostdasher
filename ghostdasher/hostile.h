@@ -1,32 +1,26 @@
 #pragma once
-#pragma once
 #include "global-includes.h"
 #include "entity.h"
 
-class LocalPlayer : public Entity
+class Hostile : public Entity
 {
 public:
-	LocalPlayer();
-	~LocalPlayer() {};
+	Hostile();
+	~Hostile() {};
 	void Render(sf::RenderWindow& renderWindow);
 	void SetPosition(const sf::Vector2f& pos);
 	void Process(float frameTime);
 
-	bool CheckSwordCollision(const sf::FloatRect& target);
-	void DoDash();
-	void DoAttack()
+	void TakeDamage(const int amount);
+
+	void SetFacing(FacingDirection dir)
 	{
-		m_attack_stage = 5.0f;
+		m_facing = dir;
 	}
 
 	sf::FloatRect GetBounds()
 	{
 		return m_shape->getGlobalBounds();
-	}
-
-	void SetFacing(FacingDirection dir)
-	{
-		m_facing = dir;
 	}
 
 	float GetMovementSpeed()
@@ -36,11 +30,8 @@ public:
 
 private:
 	std::unique_ptr<sf::RectangleShape> m_shape;
-	std::unique_ptr<sf::RectangleShape> m_sword;
 	float m_movement_speed;
-	float m_attack_stage;
-	float m_attack_angle;
-	float m_dash_time;
 	sf::Vector2f m_last_velocity;
+	int m_health;
 	FacingDirection m_facing;
 };

@@ -45,9 +45,9 @@ void InputController::ReadInput(float frameTime)
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
 	{
-		velocity *= 10.0f;
+		m_localplayer->DoDash();
 	}
 
 
-	m_localplayer->SetVelocity(velocity);
+	m_localplayer->SetGoalVelocity(velocity);
 }

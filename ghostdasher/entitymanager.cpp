@@ -1,4 +1,5 @@
 #include "entitymanager.h"
+std::unique_ptr<EntityManager> m_entityManager;
 
 EntityManager::EntityManager()
 {
@@ -7,7 +8,7 @@ EntityManager::EntityManager()
 
 Entity* EntityManager::AddEntity(std::unique_ptr<Entity> m_entity)
 {
-	m_entities.push_back(std::move(m_entity));
+	m_entities.emplace_back(std::move(m_entity));
 
 	m_entities.back().get()->SetEntityIndex(m_entities.size());
 

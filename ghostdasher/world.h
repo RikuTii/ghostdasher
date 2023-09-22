@@ -7,15 +7,22 @@ class World : public Entity
 {
 public:
 	World();
-	virtual void Render(sf::RenderWindow& renderWindow);
-	virtual void SetPosition(const sf::Vector2f& pos);
-	virtual void Process(float frameTime);
-	sf::Vector2f GetBounds()
+	void Render(sf::RenderWindow& renderWindow);
+	void SetPosition(const sf::Vector2f& pos);
+	void Process(float frameTime);
+	void InitalizeWalkableSpace();
+	bool DoesIntersectWall(const sf::FloatRect&);
+	void TryMovement(Entity* ent);
+
+	void AddUnwalkableSpace(const sf::FloatRect&);
+
+	sf::Vector2f GetWorldBounds()
 	{
 		return m_bounds;
 	}
 private:
 	std::unique_ptr<sf::RectangleShape> m_shape;
+	std::vector<sf::FloatRect> m_unwalkable_spaces;
 	sf::Vector2f m_position;
 	sf::Vector2f m_bounds;
 };
