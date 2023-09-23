@@ -11,7 +11,7 @@ World::World()
 	m_shape->setPosition(m_position);
 	m_shape->setFillColor(sf::Color(80,80,80));
 	SetRenderState(RenderState::Draw);
-	InitalizeWalkableSpace();
+	//InitalizeWalkableSpace();
 }
 
 
@@ -30,7 +30,7 @@ void World::AddUnwalkableSpace(const sf::FloatRect& space)
 
 bool World::DoesIntersectWall(const sf::FloatRect& target)
 {
-	const float shrinkScale = 50.0f;
+	const float shrinkScale = 0;
 	for (auto &it : m_unwalkable_spaces)
 	{
 		sf::FloatRect shrunk = it;
@@ -90,7 +90,7 @@ void World::TryMovement(Entity* ent)
 
 	const float scaleError = ent->GetBounds().height;
 
-	for (auto it : m_unwalkable_spaces)
+	for (auto& it : m_unwalkable_spaces)
 	{
 
 		float x = it.left - 20;
@@ -104,23 +104,42 @@ void World::TryMovement(Entity* ent)
 
 			if (position.x > x && position.x < w - scaleError)
 			{
+				if (position.y > y + 30 || position.y < (h + 30) - scaleError)	
+					new_position.x = (x);
+
 				new_velocity.x = -velModifierBounce;
+				new_velocity_goal.x = -velModifierBounce;
 			}
 
 			else if (position.x > x + scaleError)
 			{
+				if (position.y > y + 30 || position.y < (h + 30) - scaleError)
+					new_position.x = (w);
 				new_velocity.x = velModifierBounce;
+				new_velocity_goal.x = velModifierBounce;
+
 			}
 
 
 			if (position.y > y && position.y < h - scaleError)
 			{
+				if (position.x > x + 30 && position.x < w - scaleError)
+				new_position.y = (y);
+
 				new_velocity.y = -velModifierBounce;
+				new_velocity_goal.y = -velModifierBounce;
+
 			}
 
 			else if (position.y > y + scaleError)
 			{
+				if (position.x > x + 30 && position.x < x - scaleError)
+					
+				new_position.y = (h);
+
 				new_velocity.y = velModifierBounce;
+				new_velocity_goal.y = velModifierBounce;
+
 			}
 		}
 	}
@@ -131,6 +150,53 @@ void World::TryMovement(Entity* ent)
 
 }
 
+
+int World::GetIntersection(const sf::Vector2f& position)
+{
+	const float velModifierBounce = 5;
+
+	const float scaleError = this->GetBounds().height;
+	int intersection = 0;
+	for (auto &it : m_unwalkable_spaces)
+	{
+
+		float x = it.left - 20;
+		float y = it.top - 20;
+		float w = it.left + it.width + 20;
+		float h = it.top + it.height + 20;
+
+
+		if (position.x > x && position.x < w && (position.y < h && position.y > y))
+		{
+
+			if (position.x > x && position.x < w - scaleError)
+			{
+				intersection |= IntersectionDirection::InteresecRight;
+			}
+
+			else if (position.x > x + scaleError)
+			{
+				intersection |= IntersectionDirection::InteresecLeft;
+
+			}
+
+
+			if (position.y > y && position.y < h - scaleError)
+			{
+				intersection |= IntersectionDirection::InteresecDown;
+
+			}
+
+			else if (position.y > y + scaleError)
+			{
+				intersection |= IntersectionDirection::InteresecUp;
+
+			}
+		}
+	}
+
+	return intersection;
+}
 
 void World::Process(float frameTime)
 {
@@ -153,3 +219,19 @@ void World::SetPosition(const sf::Vector2f& pos)
 	m_position = pos;
 }
 
+
+
+void World::AddSpawnPoint(const sf::Vector2f& point)
+{
+	m_spawnpoints.push_back(point);
+}
+
+sf::Vector2f World::GetRandomSpawnPoint()
+{
+	int index = std::rand() % m_spawnpoints.size();
+
+	if (index >= m_spawnpoints.size())
+		return sf::Vector2f();
+
+	return m_spawnpoints.at(index);
+}

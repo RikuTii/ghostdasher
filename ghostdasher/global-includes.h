@@ -7,5 +7,6 @@
 #include <vector>
 #include <map>
 #include <filesystem>
+#include <array>
 
 class ResourceManager;

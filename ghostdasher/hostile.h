@@ -1,6 +1,9 @@
 #pragma once
 #include "global-includes.h"
 #include "entity.h"
+#include "world.h"
+#include "entitymanager.h"
+#include "pathfinder.h"
 
 class Hostile : public Entity
 {
@@ -12,6 +15,7 @@ public:
 	void Process(float frameTime);
 
 	void TakeDamage(const int amount);
+	void GoToPosition(const sf::Vector2f&);
 
 	void SetFacing(FacingDirection dir)
 	{
@@ -32,6 +36,11 @@ private:
 	std::unique_ptr<sf::RectangleShape> m_shape;
 	float m_movement_speed;
 	sf::Vector2f m_last_velocity;
+	std::vector<sf::Vector2f> m_path;
+	int m_current_path_index;
+
 	int m_health;
 	FacingDirection m_facing;
+	float m_move_delay;
+	float m_direction_time;
 };

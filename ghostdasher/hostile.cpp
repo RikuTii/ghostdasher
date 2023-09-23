@@ -19,6 +19,38 @@ Hostile::Hostile()
 }
 
 
+
+void Hostile::GoToPosition(const sf::Vector2f& pos)
+{
+	static int last_dir = 0;
+	if (m_move_delay < 0.1f)
+	{
+
+		if (m_path.size())
+		{
+			if (m_current_path_index < m_path.size())
+			{
+				sf::Vector2f dist = (m_position  - m_path.at(m_current_path_index));
+				float dist_len = std::abs(std::sqrt(dist.x * dist.x + dist.y * dist.y));
+		//		if(dist_len < 150.0f)
+				m_position = m_path.at(m_current_path_index);
+				m_current_path_index += 1;
+			}
+		}
+
+		m_move_delay = 0.3f;
+	}
+
+
+
+	if (m_direction_time < 0.1f)
+	{
+		m_path = pathFinder->GenerateBestPath(m_position, pos);
+		m_current_path_index = 0;
+		m_direction_time = 100.5f;
+	}
+}
+
 void Hostile::TakeDamage(const int amount)
 {
 	m_health -= amount;
@@ -31,6 +63,11 @@ void Hostile::TakeDamage(const int amount)
 void Hostile::Process(float frameTime)
 {
 	m_shape->setPosition(m_position);
+
+
+	m_move_delay -= frameTime * 100.0f;
+	m_direction_time -= frameTime * 100.0f;
+
 }
 
 void Hostile::Render(sf::RenderWindow& renderWindow)
