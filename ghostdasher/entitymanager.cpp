@@ -1,5 +1,5 @@
 #include "entitymanager.h"
-std::unique_ptr<EntityManager> m_entityManager;
+std::unique_ptr<EntityManager> entityManager;
 
 EntityManager::EntityManager()
 {

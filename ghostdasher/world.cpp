@@ -28,6 +28,36 @@ void World::AddUnwalkableSpace(const sf::FloatRect& space)
 	m_unwalkable_spaces.push_back(space);
 }
 
+
+bool World::IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end)
+{
+	sf::RectangleShape traceStart;
+	sf::RectangleShape traceStartBottom;
+	sf::Vector2f dist = (start - end);
+	float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
+	float angle = atan2f(end.x - start.x, end.y - start.y) * 180 / 3.14f;
+	traceStart.setPosition(start);
+	traceStart.setSize(sf::Vector2f(1, dist_len));
+	traceStart.setRotation(-angle);
+
+	traceStartBottom.setPosition(traceStart.getPosition());
+	traceStartBottom.setSize(traceStart.getSize());
+	traceStartBottom.setRotation(traceStart.getRotation());
+
+	traceStart.setOrigin(sf::Vector2f(-40, -40));
+	traceStartBottom.setOrigin(sf::Vector2f(40, 40));
+
+	for (auto& it : m_unwalkable_spaces)
+	{
+		if (traceStart.getGlobalBounds().intersects(it) && traceStartBottom.getGlobalBounds().intersects(it))
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool World::DoesIntersectWall(const sf::FloatRect& target)
 {
 	const float shrinkScale = 0;
@@ -39,7 +69,7 @@ bool World::DoesIntersectWall(const sf::FloatRect& target)
 		shrunk.width -= shrinkScale;
 		shrunk.height -= shrinkScale;
 
-		if (shrunk.intersects(target))
+		if (target.intersects(shrunk))
 		{
 			return true;
 		}
@@ -102,29 +132,45 @@ void World::TryMovement(Entity* ent)
 		if (position.x > x && position.x < w && (position.y < h && position.y > y))
 		{
 
+			if (position.x < x + 50)
+			{
+				new_position.x = x;
+			}
+
+			if (position.x > w - 50)
+			{
+				new_position.x = w;
+			}
+
 			if (position.x > x && position.x < w - scaleError)
 			{
-				if (position.y > y + 30 || position.y < (h + 30) - scaleError)	
-					new_position.x = (x);
-
 				new_velocity.x = -velModifierBounce;
 				new_velocity_goal.x = -velModifierBounce;
 			}
 
 			else if (position.x > x + scaleError)
 			{
-				if (position.y > y + 30 || position.y < (h + 30) - scaleError)
-					new_position.x = (w);
 				new_velocity.x = velModifierBounce;
 				new_velocity_goal.x = velModifierBounce;
 
 			}
 
 
+
+			if (position.y < y + 50)
+			{
+				new_position.y = y;
+			}
+
+			if (position.y > h - 50)
+			{
+				new_position.y = h;
+			}
+
+
 			if (position.y > y && position.y < h - scaleError)
 			{
-				if (position.x > x + 30 && position.x < w - scaleError)
-				new_position.y = (y);
+
 
 				new_velocity.y = -velModifierBounce;
 				new_velocity_goal.y = -velModifierBounce;
@@ -133,10 +179,6 @@ void World::TryMovement(Entity* ent)
 
 			else if (position.y > y + scaleError)
 			{
-				if (position.x > x + 30 && position.x < x - scaleError)
-					
-				new_position.y = (h);
-
 				new_velocity.y = velModifierBounce;
 				new_velocity_goal.y = velModifierBounce;
 
@@ -193,6 +235,23 @@ int World::GetIntersection(const sf::Vector2f& position)
 
 			}
 		}
+	}
+
+	if (position.x < 0.0f)
+	{
+		intersection |= IntersectionDirection::InteresecLeft;
+	}
+	if (position.x > m_bounds.x)
+	{
+		intersection |= IntersectionDirection::InteresecRight;
+	}
+	if (position.y < 0.0f)
+	{
+		intersection |= IntersectionDirection::InteresecUp;
+	}
+	if (position.y > m_bounds.y)
+	{
+		intersection |= IntersectionDirection::InteresecDown;
 	}
 
 	return intersection;

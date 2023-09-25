@@ -8,5 +8,7 @@
 #include <map>
 #include <filesystem>
 #include <array>
+#include <chrono>
+#include <thread>
 
 class ResourceManager;

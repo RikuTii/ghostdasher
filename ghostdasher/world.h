@@ -19,6 +19,8 @@ public:
 	void AddUnwalkableSpace(const sf::FloatRect&);
 	void AddSpawnPoint(const sf::Vector2f&);
 
+	bool IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end);
+
 	sf::Vector2f GetRandomSpawnPoint();
 
 

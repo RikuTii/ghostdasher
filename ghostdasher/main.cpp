@@ -4,10 +4,40 @@
 #include "entitymanager.h"
 #include "inputcontroller.h"
 #include "pathfinder.h"
+#include "globals.h"
+
+
+std::unique_ptr<Globals> globals;
 
 #include <tmxlite/Map.hpp>
 
 #include "SFMLMapRender.h"
+
+std::mutex path_mutex;
+
+void UpdateHostilePathfinding()
+{
+	while (true)
+	{
+		path_mutex.lock();
+
+		for (int i = 0; i < entityManager->GetHighestEntityIndex(); i++)
+		{
+			Entity* ent = entityManager->GetEntity(i);
+			if (ent && ent->GetType() == EntityType::HostileEntity)
+			{
+				Hostile* hostile = static_cast<Hostile*>(ent);
+
+				hostile->UpdatePath();
+
+			}
+		}
+
+		path_mutex.unlock();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+	}
+}
 
 int main()
 {
@@ -18,10 +48,12 @@ int main()
 	sf::RenderWindow window(sf::VideoMode(1200, 600), "Ghostdasher", sf::Style::Default, settings);
 	window.setFramerateLimit(120);
 	sf::Clock clock;
+	sf::Clock currentClock;
 
 	srand((int)time(0));
 
-
+	globals = std::make_unique<Globals>();
+	
 	sf::RectangleShape obstacle;
 	obstacle.setFillColor(sf::Color::Cyan);
 	obstacle.setSize(sf::Vector2f(300, 300));
@@ -39,16 +71,16 @@ int main()
 	obstacle3.setSize(sf::Vector2f(300, 80));
 	obstacle3.setPosition(sf::Vector2f(200, 600));
 
-	m_resourceManager = std::make_unique<ResourceManager>();
+	resourceManager = std::make_unique<ResourceManager>();
 
-	m_resourceManager->Loadresources();
+	resourceManager->Loadresources();
 
-	m_entityManager = std::make_unique<EntityManager>();
+	entityManager = std::make_unique<EntityManager>();
 
 
-	World* world = m_entityManager->CreateWorld();
+	World* world = entityManager->CreateWorld();
 
-	LocalPlayer* localplayer = m_entityManager->CreateLocalPlayer();
+	LocalPlayer* localplayer = entityManager->CreateLocalPlayer();
 
 	std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
 
@@ -56,19 +88,34 @@ int main()
 	pathFinder = std::make_unique<PathFinder>(world);
 
 
-	Entity* newent = m_entityManager->AddEntity(std::make_unique<Hostile>());
-	//m_entityManager->AddEntity(std::make_unique<Entity>());
-	//m_entityManager->AddEntity(std::make_unique<Entity>());
-	//m_entityManager->AddEntity(std::make_unique<Entity>());
+	Entity* newent = entityManager->AddEntity(std::make_unique<Hostile>());
+	//entityManager->AddEntity(std::make_unique<Entity>());
+	//entityManager->AddEntity(std::make_unique<Entity>());
+	//entityManager->AddEntity(std::make_unique<Entity>());
 
 
+
+	sf::CircleShape heart;
+	heart.setOutlineColor(sf::Color::Cyan);
+	heart.setRadius(20.0f);
+	heart.setFillColor(sf::Color::Black);
+	heart.setOutlineThickness(2);
 
 	sf::Text fps;
 	fps.setFillColor(sf::Color::White);
 	fps.setCharacterSize(26);
-	fps.setFont(m_resourceManager->GetPrimaryFont());
+	fps.setFont(resourceManager->GetPrimaryFont());
 	fps.setPosition(0, 0);
 	fps.setString("");
+
+
+	sf::Text pausedText;
+	pausedText.setFillColor(sf::Color::White);
+	pausedText.setCharacterSize(26);
+	pausedText.setFont(resourceManager->GetPrimaryFont());
+	pausedText.setPosition(window.getSize().x / 2, 0);
+	pausedText.setString("PAUSED");
+
 
 	std::deque<float> m_frameSmaples;
 	float last_frametime = 0.0f;
@@ -113,7 +160,11 @@ int main()
 
 
 	newent->SetPosition(world->GetRandomSpawnPoint());
+	((Hostile*)newent)->SetGoalPosition(newent->GetPosition());
 	localplayer->SetPosition(world->GetRandomSpawnPoint());
+
+	std::thread pathfinding_thread(UpdateHostilePathfinding);
+	bool paused = false;
 
 	while (window.isOpen())
 	{
@@ -127,29 +178,51 @@ int main()
 
 			if (event.type == sf::Event::KeyReleased)
 			{
+				if (event.key.code == sf::Keyboard::Escape)
+				{
+					paused = !paused;
+				}
+			}
+
+			if (event.type == sf::Event::KeyReleased)
+			{
 				if (event.key.code == sf::Keyboard::F)
 				{
-					m_entityManager->ResetAll();
-					m_entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());
-					m_entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
-					m_entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
-					m_entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
+					localplayer->Respawn();
+					entityManager->ResetAll();
+					for(int i = 0;i < 11;i++)
+					entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
 				}
 			}
 		}
 
+
+		
+		globals->curtime = currentClock.getElapsedTime().asSeconds();
+		globals->frametime = elapsed.asSeconds();
+		globals->interval_per_tick = 0.0078125f;
+		globals->tick_count = static_cast<int>(globals->curtime / globals->interval_per_tick);
+
+
+
 		window.setView(gameView);
 		gameView.setCenter(localplayer->GetPosition());
 
-
-		m_entityManager->ProcessEntityLogic(elapsed.asSeconds());
-		localplayer->Process(elapsed.asSeconds());
-
-		inputcontroller->ReadInput(elapsed.asSeconds());
-
-		for (int i = 0; i < m_entityManager->GetHighestEntityIndex(); i++)
+		if (!paused)
 		{
-			Entity* ent = m_entityManager->GetEntity(i);
+			entityManager->ProcessEntityLogic(elapsed.asSeconds());
+			if (localplayer->IsAlive())
+			{
+				localplayer->Process(elapsed.asSeconds());
+
+				inputcontroller->ReadInput(elapsed.asSeconds());
+			}
+		}
+
+
+		for (int i = 0; i < entityManager->GetHighestEntityIndex(); i++)
+		{
+			Entity* ent = entityManager->GetEntity(i);
 			if (ent && ent->GetType() == EntityType::HostileEntity)
 			{
 				Hostile* hostile = static_cast<Hostile*>(ent);
@@ -163,6 +236,10 @@ int main()
 				sf::Vector2f additional = rand() % 100 < 10 ? sf::Vector2f((float)(rand() % 500), (float)(rand() % 500)) : sf::Vector2f(0, 0);
 				sf::Vector2f delta = (localplayer->GetPosition() - hostile->GetPosition());
 
+				if (dist_len < 40.0f)
+				{
+					localplayer->TakeDamage(50, hostile->GetPosition());
+				}
 
 				float angle = atan2f(hostile->GetPosition().x - start.getPosition().x, hostile->GetPosition().y - start.getPosition().y) * 180 / 3.14f;
 				start.setRotation(-angle);
@@ -171,7 +248,7 @@ int main()
 				std::vector<sf::Vector2f> path2;
 				std::vector<sf::Vector2f> path3;
 
-				World* world = m_entityManager->GetWorld();
+				World* world = entityManager->GetWorld();
 
 			//	hostile->SetPosition(sf::Vector2f(30, 600));
 				hostile->GoToPosition(localplayer->GetPosition());
@@ -180,23 +257,15 @@ int main()
 
 				const float step = 5.0f;
 				sf::Vector2f local_pos = localplayer->GetPosition();
-
-
-				/*path = pathFinder->GenerateHorizontalPath(startPos, local_pos);
-				if (path.size())
+			
+				if (world->IsPointVisible(local_pos,startPos))
 				{
-					line = sf::VertexArray(sf::LinesStrip, path.size());
-
-					for (int b = 0; b < path.size(); b++)
-					{
-						line[b].position = path.at(b);
-						line[b].color = sf::Color::Blue;
-					}
-				}*/
-	
-				if (!world->DoesIntersectWall(start.getGlobalBounds()))
+					start.setFillColor(sf::Color::Green);
+				}
+				else
 				{
-					//  hostile->SetPosition(hostile->GetPosition() + delta / (elapsed.asSeconds() * 10000));
+					start.setFillColor(sf::Color::Red);
+
 				}
 
 
@@ -204,8 +273,8 @@ int main()
 				if (localplayer->CheckSwordCollision(hostile->GetBounds()))
 				{
 					std::cout << "hit ent " << ent->GetPosition().x << std::endl;;
-					hostile->SetPosition(hostile->GetPosition() - sf::Vector2f(delta.x * 2, delta.y * 2) / (elapsed.asSeconds() * 300));
-					hostile->TakeDamage(50);
+				//	hostile->SetPosition(hostile->GetPosition() - sf::Vector2f(delta.x * 2, delta.y * 2) / (elapsed.asSeconds() * 300));
+					hostile->TakeDamage(50, localplayer->GetFacing());
 
 
 				}
@@ -233,29 +302,47 @@ int main()
 
 		window.clear(sf::Color(43, 43, 43));
 		world->Render(window);
-		localplayer->Render(window);
+		if (localplayer->IsAlive())
+		{
+			localplayer->Render(window);
+		}
 
 /*		window.draw(obstacle);
 		window.draw(obstacle2);
 		window.draw(obstacle3);*/
-		//window.draw(start);
+	//	window.draw(start);
 		window.draw(layerZero);
 		window.draw(layerDepth);
 
 
 
-		m_entityManager->RenderEntities(window);
+		entityManager->RenderEntities(window);
 
-		window.draw(line);
-		window.draw(line2);
-		window.draw(line3);
+	//	window.draw(line);
+	//	window.draw(line2);
+	//	window.draw(line3);
 
 		window.setView(view);
 		window.draw(fps);
+		if (paused)
+		{
+			window.draw(pausedText);
+		}
+
+
+		for (int i = 0; i < localplayer->GetHealth(); i += 50)
+		{
+			window.draw(heart);
+
+			heart.setPosition(sf::Vector2f(i + 100, 30));
+		}
+
 		window.display();
 
-		m_entityManager->DeleteMarkedEntities();
+		entityManager->DeleteMarkedEntities();
 	}
+
+	pathfinding_thread.detach();
 
 	return 0;
 }

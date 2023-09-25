@@ -42,4 +42,4 @@ private:
 	size_t m_highest_entity_index;
 };
 
-extern std::unique_ptr<EntityManager> m_entityManager;
+extern std::unique_ptr<EntityManager> entityManager;
