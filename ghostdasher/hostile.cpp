@@ -3,22 +3,57 @@
 
 Hostile::Hostile()
 {
-	m_shape = std::make_unique<sf::RectangleShape>();
-	m_shape->setSize(sf::Vector2f(40, 40));
-	m_shape->setOrigin(sf::Vector2f(20, 20));
+	m_shape = std::make_unique<sf::Sprite>();
+	//m_shape->setSize(sf::Vector2f(40, 40));
+
+	m_texture_sprite_size = sf::IntRect(0, 0, 24, 24);
+
+	m_shape->setOrigin(sf::Vector2f(float(m_texture_sprite_size.width / 2), float(m_texture_sprite_size.height / 2)));
 
 	m_position = sf::Vector2f((float)(rand() % 500), (float)(rand() % 500));
 	m_goal_position = sf::Vector2f(0, 0);
 	m_shape->setPosition(m_position);
-	m_shape->setFillColor(sf::Color::Black);
-	m_shape->setOutlineColor(sf::Color::Red);
-	m_shape->setOutlineThickness(2);
+//	m_shape->setFillColor(sf::Color::Black);
+//	m_shape->setOutlineColor(sf::Color::Red);
+//	m_shape->setOutlineThickness(2);
 	m_render_state = RenderState::Draw;
 	m_movement_speed = 700.0f;
 	m_type = EntityType::HostileEntity;
 	m_health = 200;
+	LoadTextures();
+	m_shape->setScale(3.0f, 3.0f);
 
+	m_total_animation_frames = 4;
 	//m_path_finding = true;
+}
+void Hostile::LoadTextures()
+{
+
+	std::optional<sf::Texture*> run_texture = resourceManager->GetTexture("HostileIdle");
+	if (run_texture.has_value())
+	{
+		m_texture = run_texture.value();
+		m_shape->setTexture(*m_texture);
+	}
+
+}
+
+void Hostile::PlayAnimation(float frameTime)
+{
+	if (m_animation_time < 0.0f)
+	{
+		m_animation_frame++;
+
+		if (m_animation_frame >= (m_min_animation_frame + m_total_animation_frames))
+			m_animation_frame = m_min_animation_frame;
+
+		sf::IntRect texture_rect = m_texture_sprite_size;
+		texture_rect.left = (texture_rect.width * m_animation_frame);
+		m_shape->setTextureRect(texture_rect);
+		m_animation_time = 8.0f;
+	}
+
+	m_animation_time -= frameTime * 100.0f;
 }
 
 
@@ -162,6 +197,24 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 			{
 				sf::Vector2f cur_pos = m_position;
 				m_position = m_path.at(m_current_path_index);
+				if (cur_pos.x < m_position.x)
+				{
+					m_facing = Left;
+				}
+				else if (cur_pos.x > m_position.x)
+				{
+					m_facing = Right;
+				}
+
+				else if (cur_pos.y < m_position.y)
+				{
+					m_facing = Down;
+				}
+				else if (cur_pos.y > m_position.y)
+				{
+					m_facing = Up;
+				}
+
 
 				sf::Vector2f dist = (cur_pos - m_position);
 				float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
@@ -291,6 +344,26 @@ void Hostile::Process(float frameTime)
 	m_shape->setPosition(m_position);
 
 
+	if (m_goal_position.x < m_position.x)
+	{
+		m_facing = Right;
+	}
+	else if (m_goal_position.x > m_position.x)
+	{
+		m_facing = Left;
+	}
+
+	else if (m_goal_position.y < m_position.y)
+	{
+		m_facing = Up;
+	}
+	else if (m_goal_position.y > m_position.y)
+	{
+		m_facing = Down;
+	}
+
+
+
 	if (m_goal_position.x < 0.1f && m_goal_position.x > -0.1f)
 		m_goal_position = m_position;
 
@@ -316,9 +389,37 @@ void Hostile::Process(float frameTime)
 	}
 
 
+
+	if (m_facing == Right)
+	{
+		m_shape->setScale(sf::Vector2f(3.0f, 3.0f));
+		m_min_animation_frame = 4;
+
+	}
+	else if (m_facing == Left)
+	{
+		m_shape->setScale(sf::Vector2f(-3.0f, 3.0f));
+		m_min_animation_frame = 4;
+	}
+	else if (m_facing == Up)
+	{
+		m_shape->setScale(sf::Vector2f(3.0f, 3.0f));
+		m_min_animation_frame = 12;
+	}
+	else
+	{
+		m_min_animation_frame = 0;
+	}
+
+
+
 	m_knockback_time -= frameTime * 100.0f;
 	m_move_delay -= frameTime * 100.0f;
 	m_direction_time -= frameTime * 100.0f;
+
+	PlayAnimation(frameTime);
+
+	m_last_position = m_position;
 
 }
 

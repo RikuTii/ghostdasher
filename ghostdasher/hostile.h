@@ -20,6 +20,8 @@ public:
 	bool CanSeePlayer();
 	void UpdatePath();
 	void DoKnockbackMove();
+	void PlayAnimation(float frameTime);
+	void LoadTextures();
 
 	void SetFacing(FacingDirection dir)
 	{
@@ -47,13 +49,22 @@ public:
 	}
 
 
+	enum Animation
+	{
+		Idle,
+		Run
+	};
+
 private:
-	std::unique_ptr<sf::RectangleShape> m_shape;
+	std::unique_ptr<sf::Sprite> m_shape;
 	float m_movement_speed;
+	sf::Texture* m_texture;
 	sf::Vector2f m_goal_position;
 	sf::Vector2f m_last_velocity;
 	sf::Vector2f m_target_position;
 	std::vector<sf::Vector2f> m_path;
+	sf::Vector2f m_last_position;
+
 	int m_current_path_index;
 	bool m_path_finding;
 	int m_health;
@@ -63,4 +74,11 @@ private:
 	float m_last_spotted_player;
 	float m_knockback_time;
 	int m_last_damage_tick;
+	sf::IntRect m_texture_sprite_size;
+	Animation m_last_animation;
+	Animation m_current_animation;
+	float m_animation_time;
+	int m_animation_frame;
+	int m_total_animation_frames;
+	int m_min_animation_frame;
 };
