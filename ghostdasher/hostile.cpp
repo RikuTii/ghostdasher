@@ -13,9 +13,6 @@ Hostile::Hostile()
 	m_position = sf::Vector2f((float)(rand() % 500), (float)(rand() % 500));
 	m_goal_position = sf::Vector2f(0, 0);
 	m_shape->setPosition(m_position);
-//	m_shape->setFillColor(sf::Color::Black);
-//	m_shape->setOutlineColor(sf::Color::Red);
-//	m_shape->setOutlineThickness(2);
 	m_render_state = RenderState::Draw;
 	m_movement_speed = 700.0f;
 	m_type = EntityType::HostileEntity;
@@ -24,7 +21,14 @@ Hostile::Hostile()
 	m_shape->setScale(3.0f, 3.0f);
 
 	m_total_animation_frames = 4;
-	//m_path_finding = true;
+
+	m_spotted_text = std::make_unique<sf::Text>();
+
+	m_spotted_text->setFillColor(sf::Color::Red);
+	m_spotted_text->setCharacterSize(40);
+	m_spotted_text->setFont(resourceManager->GetPrimaryFont());
+	m_spotted_text->setString("!");
+
 }
 void Hostile::LoadTextures()
 {
@@ -61,7 +65,7 @@ void Hostile::UpdatePath()
 {
 	if (m_path_finding)
 	{
-		m_path = pathFinder->GenerateBestPath(m_position, m_target_position);
+		m_path = pathFinder->GenerateBestPath(this, m_position, m_target_position);
 		m_current_path_index = 0;
 	}
 }
@@ -83,13 +87,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		if (dir == 0)
 		{
 			m_goal_position = m_position + sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position);
+			int intersection = world->GetIntersection(m_goal_position, this);
 			if (intersection & IntersectionDirection::InteresecRight)
 			{
 				while (true)
 				{
 					m_goal_position.x -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
+					intersection = world->GetIntersection(m_goal_position, this);
 					if (m_goal_position.x < m_position.x || !(intersection & IntersectionDirection::InteresecRight))
 						break;
 				}
@@ -99,13 +103,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 1)
 		{
 			m_goal_position = m_position - sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position);
+			int intersection = world->GetIntersection(m_goal_position, this);
 			if (intersection & IntersectionDirection::InteresecLeft)
 			{
 				while (true)
 				{
 					m_goal_position.x += 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
+					intersection = world->GetIntersection(m_goal_position, this);
 					if (m_goal_position.x > m_position.x || !(intersection & IntersectionDirection::InteresecLeft))
 						break;
 				}
@@ -114,13 +118,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 2)
 		{
 			m_goal_position = m_position + sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position);
+			int intersection = world->GetIntersection(m_goal_position, this);
 			if (intersection & IntersectionDirection::InteresecDown)
 			{
 				while (true)
 				{
 					m_goal_position.y -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
+					intersection = world->GetIntersection(m_goal_position, this);
 					if (m_goal_position.y < m_position.y || !(intersection & IntersectionDirection::InteresecDown))
 						break;
 				}
@@ -129,19 +133,18 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 3)
 		{
 			m_goal_position = m_position - sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position);
+			int intersection = world->GetIntersection(m_goal_position, this);
 			if (intersection & IntersectionDirection::InteresecUp)
 			{
 				while (true)
 				{
 					m_goal_position.y += 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
+					intersection = world->GetIntersection(m_goal_position, this);
 					if (m_goal_position.y > m_position.y || !(intersection & IntersectionDirection::InteresecUp))
 						break;
 				}
 			}
 		}
-
 	}
 	else
 	{
@@ -197,31 +200,39 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 			{
 				sf::Vector2f cur_pos = m_position;
 				m_position = m_path.at(m_current_path_index);
-				if (cur_pos.x < m_position.x)
-				{
-					m_facing = Left;
-				}
-				else if (cur_pos.x > m_position.x)
-				{
-					m_facing = Right;
-				}
-
-				else if (cur_pos.y < m_position.y)
-				{
-					m_facing = Down;
-				}
-				else if (cur_pos.y > m_position.y)
-				{
-					m_facing = Up;
-				}
-
-
 				sf::Vector2f dist = (cur_pos - m_position);
 				float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
 				if (dist_len > 10.0f)
 				{
 					m_position = cur_pos;
 				}
+				if (dist_len < 1.0f)
+				{
+					m_position = cur_pos;
+				}
+				if (dist_len > 1.0f)
+				{
+
+
+					if (cur_pos.x < m_position.x)
+					{
+						m_facing = Left;
+					}
+					else if (cur_pos.x > m_position.x)
+					{
+						m_facing = Right;
+					}
+
+					else if (cur_pos.y < m_position.y)
+					{
+						m_facing = Down;
+					}
+					else if (cur_pos.y > m_position.y)
+					{
+						m_facing = Up;
+					}
+				}
+		
 
 				m_goal_position = m_position;
 
@@ -229,7 +240,7 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 			}
 		}
 
-		m_move_delay = 0.3f;
+		m_move_delay = 0.6f;
 	}
 }
 
@@ -377,10 +388,26 @@ void Hostile::Process(float frameTime)
 	{
 		if (CanSeePlayer())
 		{
+			if (!m_path_finding)
+			{
+				m_spotted_time = 15.0f;
+				m_spot_state = Spotted;
+				m_spotted_text->setString("!");
+				m_spotted_text->setFillColor(sf::Color::Red);
+
+			}
 			m_path_finding = true;
 		}
 		else if ((globals->curtime - m_last_spotted_player) > 5.0f)
 		{
+			if (m_path_finding && m_spot_state == Spotted)
+			{
+				m_spotted_time = 15.0f;
+				m_spot_state = Lost;
+				m_spotted_text->setString("?");
+				m_spotted_text->setFillColor(sf::Color::White);
+
+			}
 			m_path_finding = false;
 		}
 
@@ -412,6 +439,12 @@ void Hostile::Process(float frameTime)
 	}
 
 
+	if (m_spotted_time > 0.0f)
+	{
+		m_spotted_text->setPosition(sf::Vector2f(GetPosition().x, GetPosition().y - 80));
+	}
+
+	m_spotted_time -= frameTime * 10.0f;
 
 	m_knockback_time -= frameTime * 100.0f;
 	m_move_delay -= frameTime * 100.0f;
@@ -427,6 +460,10 @@ void Hostile::Render(sf::RenderWindow& renderWindow)
 {
 	if (m_render_state == RenderState::Draw)
 	{
+		if (m_spotted_time > 0.0f)
+		{
+			renderWindow.draw(*m_spotted_text.get());
+		}
 		renderWindow.draw(*m_shape.get());
 
 	}

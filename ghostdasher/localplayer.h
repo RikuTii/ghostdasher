@@ -75,6 +75,7 @@ private:
 	sf::Texture* m_idle_texture;
 	std::unique_ptr<sf::RectangleShape> m_sword;
 	sf::IntRect m_texture_sprite_size;
+	sf::Vector2f m_sprite_scale;
 	Animation m_last_animation;
 	Animation m_current_animation;
 	float m_movement_speed;

@@ -4,28 +4,59 @@
 #include "world.h"
 #include "hostile.h"
 #include "localplayer.h"
-#include "entitymanager.h"
 
 class EntityManager
 {
 public:
 	EntityManager();
-	Entity* AddEntity(std::unique_ptr<Entity> entity);
 	void RenderEntities(sf::RenderWindow& window);
 	void ProcessEntityLogic(float frameTime);
 	void RemoveEntity(size_t index);
 	Entity* GetEntity(size_t index);
 	void ResetAll();
-	
+	void DeleteMarkedEntities();
+	LocalPlayer* CreateLocalPlayer();
 	World* CreateWorld();
+
+	template<class T>
+	std::vector<T> GetEntitiesByType()
+	{
+		std::vector<T> m_ents;
+		for (const auto& it : m_entities)
+		{
+			if (it && !it->GetMarkedForDeletion() && it.get())
+			{
+				auto ent = dynamic_cast<T>(it.get());
+				if (ent)
+				{
+					m_ents.push_back(ent);
+				}
+			}
+			
+		}
+
+		return m_ents;
+	}
+
+	template<class T>
+	T* AddEntity(std::unique_ptr<T> m_entity)
+	{
+		m_entities.emplace_back(std::move(m_entity));
+
+		m_entities.back().get()->SetEntityIndex(m_entities.size());
+
+		m_highest_entity_index = m_entities.size() + 1;
+
+		return dynamic_cast<T*>(m_entities.back().get());
+	}
+
+
+
 	World* GetWorld()
 	{
 		return m_world.get();
 	}
 
-	void DeleteMarkedEntities();
-
-	LocalPlayer* CreateLocalPlayer();
 	LocalPlayer* GetLocalPlayer()
 	{
 		return m_localplayer.get();

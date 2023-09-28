@@ -5,7 +5,7 @@
 #include "inputcontroller.h"
 #include "pathfinder.h"
 #include "globals.h"
-
+constexpr float TICK_INTERVAL = 0.0078125f;
 
 std::unique_ptr<Globals> globals;
 
@@ -27,15 +27,13 @@ void UpdateHostilePathfinding()
 			if (ent && ent->GetType() == EntityType::HostileEntity)
 			{
 				Hostile* hostile = static_cast<Hostile*>(ent);
-
 				hostile->UpdatePath();
-
 			}
 		}
 
 		path_mutex.unlock();
 
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::this_thread::sleep_for(std::chrono::milliseconds(500));
 	}
 }
 
@@ -88,9 +86,9 @@ int main()
 	pathFinder = std::make_unique<PathFinder>(world);
 
 
-	Entity* newent = entityManager->AddEntity(std::make_unique<Hostile>());
-	//entityManager->AddEntity(std::make_unique<Entity>());
-	//entityManager->AddEntity(std::make_unique<Entity>());
+	Hostile* newent = entityManager->AddEntity(std::make_unique<Hostile>());
+//	entityManager->AddEntity(std::make_unique<Entity>());
+	//entityManager->AddEntity(std::make_unique<Hostile>());
 	//entityManager->AddEntity(std::make_unique<Entity>());
 
 
@@ -125,7 +123,7 @@ int main()
 
 	sf::View gameView = window.getDefaultView();
 
-	gameView.zoom(2);
+	gameView.zoom(1.2f);
 	sf::RectangleShape start;
 	sf::VertexArray line;
 	sf::VertexArray line2;
@@ -159,8 +157,13 @@ int main()
 	}
 
 
+	std::vector<Hostile*> ents = entityManager->GetEntitiesByType<Hostile*>();
+	std::vector<Entity*> ents1 = entityManager->GetEntitiesByType<Entity*>();
+
+	std::cout << "ents " << ents.size()  << " ents 2 " << ents1.size() << std::endl;
+
 	newent->SetPosition(world->GetRandomSpawnPoint());
-	((Hostile*)newent)->SetGoalPosition(newent->GetPosition());
+	newent->SetGoalPosition(newent->GetPosition());
 	localplayer->SetPosition(world->GetRandomSpawnPoint());
 
 	std::thread pathfinding_thread(UpdateHostilePathfinding);
@@ -200,7 +203,7 @@ int main()
 		
 		globals->curtime = currentClock.getElapsedTime().asSeconds();
 		globals->frametime = elapsed.asSeconds();
-		globals->interval_per_tick = 0.0078125f;
+		globals->interval_per_tick = TICK_INTERVAL;
 		globals->tick_count = static_cast<int>(globals->curtime / globals->interval_per_tick);
 
 

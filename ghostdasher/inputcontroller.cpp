@@ -33,8 +33,16 @@ void InputController::ReadInput(float frameTime)
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::F))
 	{
-		m_localplayer->ResetOrigin();
+	//	m_localplayer->ResetOrigin();
 		m_localplayer->Respawn();
+	}
+
+	if (velocity.x > 0.0f || velocity.x < 0.0f)
+	{
+		if (velocity.y > 0.0f || velocity.y < 0.0f)
+		{
+			velocity.y /= 2.0f;
+		}
 	}
 
 

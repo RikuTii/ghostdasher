@@ -3,18 +3,7 @@ std::unique_ptr<EntityManager> entityManager;
 
 EntityManager::EntityManager()
 {
-
-}
-
-Entity* EntityManager::AddEntity(std::unique_ptr<Entity> m_entity)
-{
-	m_entities.emplace_back(std::move(m_entity));
-
-	m_entities.back().get()->SetEntityIndex(m_entities.size());
-
-	m_highest_entity_index = m_entities.size() + 1;
-
-	return m_entities.back().get();
+	m_highest_entity_index = 0;
 }
 
 
@@ -36,7 +25,7 @@ LocalPlayer* EntityManager::CreateLocalPlayer()
 void EntityManager::RemoveEntity(size_t index)
 {
 
-	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const &obj) { return obj->GetEntityIndex() == index; });
+	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const &obj) { return obj && obj->GetEntityIndex() == index; });
 	if (it != m_entities.end())
 	{
 		m_entities.erase(it);
@@ -54,7 +43,7 @@ void EntityManager::ResetAll()
 Entity* EntityManager::GetEntity(size_t index)
 {
 
-	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const& obj) { return obj->GetEntityIndex() == index; });
+	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const& obj) { return obj && obj->GetEntityIndex() == index; });
 	if (it != m_entities.end()) 
 	{
 		return it->get();
@@ -68,7 +57,7 @@ Entity* EntityManager::GetEntity(size_t index)
 void EntityManager::DeleteMarkedEntities()
 {
 	std::erase_if(m_entities,
-		[=](auto const& ptr) { return ptr->GetMarkedForDeletion() == true; });
+		[=](auto const& ptr) { return ptr && ptr->GetMarkedForDeletion() == true; });
 }
 
 void EntityManager::RenderEntities(sf::RenderWindow& window)

@@ -55,8 +55,16 @@ public:
 		Run
 	};
 
+	enum SpottedState
+	{
+		Spotted,
+		Lost,
+		None
+	};
+
 private:
 	std::unique_ptr<sf::Sprite> m_shape;
+	std::unique_ptr<sf::Text> m_spotted_text;
 	float m_movement_speed;
 	sf::Texture* m_texture;
 	sf::Vector2f m_goal_position;
@@ -81,4 +89,6 @@ private:
 	int m_animation_frame;
 	int m_total_animation_frames;
 	int m_min_animation_frame;
+	SpottedState m_spot_state;
+	float m_spotted_time;
 };

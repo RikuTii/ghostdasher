@@ -1,7 +1,7 @@
 #pragma once
-#pragma once
 #include "global-includes.h"
 #include "entity.h"
+
 
 class World : public Entity
 {
@@ -14,7 +14,7 @@ public:
 	bool DoesIntersectWall(const sf::FloatRect&);
 	void TryMovement(Entity* ent);
 
-	int GetIntersection(const sf::Vector2f&);
+	int GetIntersection(const sf::Vector2f&, Entity*en = nullptr);
 
 	void AddUnwalkableSpace(const sf::FloatRect&);
 	void AddSpawnPoint(const sf::Vector2f&);

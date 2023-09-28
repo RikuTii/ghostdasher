@@ -1,8 +1,10 @@
 #include "pathfinder.h"
 
 std::unique_ptr<PathFinder> pathFinder;
-std::vector<sf::Vector2f> PathFinder::GenerateBestPath(const sf::Vector2f& start, const sf::Vector2f& end)
+std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::Vector2f& start, const sf::Vector2f& end)
 {
+
+
 	std::vector<sf::Vector2f> path_x;
 	std::vector<sf::Vector2f> path_y;
 	std::vector<sf::Vector2f> path_pos;
@@ -10,6 +12,12 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(const sf::Vector2f& start
 
 	std::vector<sf::Vector2f> path_neg;
 	std::vector<sf::Vector2f> path_neg1;
+
+
+	if (!m_world || !entity)
+		return path_x;
+
+	m_tracking_entity = entity;
 	SetGenMode(Normal);
 	path_x = GenerateHorizontalPath(start, end);
 	path_y = GenerateVerticalPath(start, end);
@@ -86,9 +94,9 @@ int PathFinder::AdjustMovement(const sf::Vector2f& start, const sf::Vector2f& en
 		down_pos.x = startPos.x + 20;
 	}
 
-	int dir = m_world->GetIntersection(startPos);
-	int dir_down = m_world->GetIntersection(down_pos);
-	int dir_right = m_world->GetIntersection(right_pos);
+	int dir = m_world->GetIntersection(startPos, m_tracking_entity);
+	int dir_down = m_world->GetIntersection(down_pos, m_tracking_entity);
+	int dir_right = m_world->GetIntersection(right_pos, m_tracking_entity);
 
 
 	if ((dir & IntersectionDirection::InteresecRight) || (dir & IntersectionDirection::InteresecLeft))
@@ -110,7 +118,7 @@ int PathFinder::AdjustMovement(const sf::Vector2f& start, const sf::Vector2f& en
 				startPos.y = startPos.y - (m_gen_mode == GenerateMode::Negative ? -m_adjust_step : m_adjust_step);
 			}
 
-			dir_right = m_world->GetIntersection(startPos);
+			dir_right = m_world->GetIntersection(startPos, m_tracking_entity);
 			if (!(dir_right & IntersectionDirection::InteresecRight) && !(dir_right & IntersectionDirection::InteresecLeft))
 			{
 				if (m_gen_mode == GenerateMode::Normal)
@@ -146,7 +154,7 @@ int PathFinder::AdjustMovement(const sf::Vector2f& start, const sf::Vector2f& en
 			{
 				startPos.x = startPos.x - (m_gen_mode == GenerateMode::Negative ? -m_adjust_step : m_adjust_step);
 			}
-			dir_down = m_world->GetIntersection(startPos);
+			dir_down = m_world->GetIntersection(startPos, m_tracking_entity);
 			if (!(dir_down & IntersectionDirection::InteresecDown) && !(dir_down & IntersectionDirection::InteresecUp))
 			{
 				if (m_gen_mode == GenerateMode::Normal)
