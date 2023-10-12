@@ -117,7 +117,7 @@ void World::TryMovement(Entity* ent)
 
 	}
 
-	const float velModifierBounce = 5;
+	const float velModifierBounce = 0;
 	const float positionAdjust = 30.0f;
 
 	const float scaleError = 30.0f;
@@ -125,21 +125,21 @@ void World::TryMovement(Entity* ent)
 	for (auto& it : m_unwalkable_spaces)
 	{
 
-		float x = it.left - 20;
-		float y = it.top - 20;
-		float w = it.left + it.width + 20;
-		float h = it.top + it.height + 20;
+		float x = it.left - 50;
+		float y = it.top - 50;
+		float w = it.left + it.width + 50;
+		float h = it.top + it.height + 50;
 
 
 		if (position.x > x && position.x < w && (position.y < h && position.y > y))
 		{
 
-			if (position.x > x && position.x < w - 100)
+			if (position.x > x && position.x < w - 70)
 			{
 				float diff_x = (position.x - x);
 				float diff_y = (position.y - y);
 
-				if (position.y > y && position.y < h - 100)
+				if (position.y > y && position.y < h - 70)
 				{
 
 
@@ -171,15 +171,15 @@ void World::TryMovement(Entity* ent)
 						new_position.y = h;
 
 				}
-	
+
 
 			}
-			else if (position.y > y && position.y < h - 100)
+			else if (position.y > y && position.y < h - 70)
 			{
 				float diff_x = (position.x - x);
 				float diff_y = (position.y - y);
 
-				if (position.x > x && position.x < w - 100)
+				if (position.x > x && position.x < w - 70)
 				{
 					if (position.x > x)
 					{
@@ -240,7 +240,7 @@ void World::TryMovement(Entity* ent)
 				}
 				else
 					new_position.y = h;
-			
+
 			}
 
 

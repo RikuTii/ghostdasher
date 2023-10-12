@@ -20,8 +20,8 @@ public:
 	bool CanSeePlayer();
 	void UpdatePath();
 	void DoKnockbackMove();
-	void PlayAnimation(float frameTime);
-	void LoadTextures();
+	virtual void PlayAnimation(float frameTime);
+	virtual void LoadTextures();
 
 	void SetFacing(FacingDirection dir)
 	{
@@ -62,17 +62,12 @@ public:
 		None
 	};
 
-private:
-	std::unique_ptr<sf::Sprite> m_shape;
-	std::unique_ptr<sf::Text> m_spotted_text;
-	float m_movement_speed;
-	sf::Texture* m_texture;
+protected:
 	sf::Vector2f m_goal_position;
 	sf::Vector2f m_last_velocity;
 	sf::Vector2f m_target_position;
 	std::vector<sf::Vector2f> m_path;
 	sf::Vector2f m_last_position;
-
 	int m_current_path_index;
 	bool m_path_finding;
 	int m_health;
@@ -91,4 +86,9 @@ private:
 	int m_min_animation_frame;
 	SpottedState m_spot_state;
 	float m_spotted_time;
+	float m_movement_speed;
+private:
+	std::unique_ptr<sf::Sprite> m_shape;
+	std::unique_ptr<sf::Text> m_spotted_text;
+	sf::Texture* m_texture;
 };

@@ -3,10 +3,6 @@
 std::unique_ptr<PathFinder> pathFinder;
 std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::Vector2f& start, const sf::Vector2f& end)
 {
-
-
-	std::vector<sf::Vector2f> path_x;
-	std::vector<sf::Vector2f> path_y;
 	std::vector<sf::Vector2f> path_pos;
 	std::vector<sf::Vector2f> path_pos1;
 
@@ -15,12 +11,9 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::
 
 
 	if (!m_world || !entity)
-		return path_x;
+		return path_pos;
 
 	m_tracking_entity = entity;
-	SetGenMode(Normal);
-	path_x = GenerateHorizontalPath(start, end);
-	path_y = GenerateVerticalPath(start, end);
 	SetGenMode(Negative);
 	path_neg = GenerateHorizontalPath(start, end);
 	path_neg1 = GenerateVerticalPath(start, end);
@@ -30,14 +23,8 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::
 	SetGenMode(Normal);
 
 
-	if (path_x.size() && path_y.size() && path_neg.size() && path_neg1.size() && path_pos.size() && path_pos1.size())
+	if (path_neg.size() && path_neg1.size() && path_pos.size() && path_pos1.size())
 	{
-//		sf::Vector2f dist = (path_x.back() - end);
-//		float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
-//		sf::Vector2f dist1 = (path_y.back() - end);
-//		float dist_len1 = std::sqrt(dist1.x * dist1.x + dist1.y * dist1.y);
-
-
 		sf::Vector2f neg_dist = (path_neg.back() - end);
 		float neg_dist_len = std::sqrt(neg_dist.x * neg_dist.x + neg_dist.y * neg_dist.y);
 		sf::Vector2f neg_dist1 = (path_neg1.back() - end);
@@ -47,11 +34,6 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::
 		float pos_dist_len = std::sqrt(pos_dist.x * pos_dist.x + pos_dist.y * pos_dist.y);
 		sf::Vector2f pos_dist1 = (path_pos1.back() - end);
 		float pos_dist_len1 = std::sqrt(pos_dist1.x * pos_dist1.x + pos_dist1.y * pos_dist1.y);
-
-		/*if (dist_len > dist_len1)
-		{
-			return path_y;
-		}*/
 
 		std::array<float, 4> dists = { neg_dist_len, neg_dist_len1, pos_dist_len,pos_dist_len1 };
 
@@ -75,7 +57,7 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::
 	}
 
 
-	return path_x;
+	return path_pos;
 }
 
 

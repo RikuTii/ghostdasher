@@ -1,6 +1,8 @@
 #include "resourcemanager.h"
 #include "entity.h"
 #include "hostile.h"
+#include "firinghostile.h"
+
 #include "entitymanager.h"
 #include "inputcontroller.h"
 #include "pathfinder.h"
@@ -86,7 +88,7 @@ int main()
 	pathFinder = std::make_unique<PathFinder>(world);
 
 
-	Hostile* newent = entityManager->AddEntity(std::make_unique<Hostile>());
+	Hostile* newent = entityManager->AddEntity(std::make_unique<FiringHostile>());
 //	entityManager->AddEntity(std::make_unique<Entity>());
 	//entityManager->AddEntity(std::make_unique<Hostile>());
 	//entityManager->AddEntity(std::make_unique<Entity>());
@@ -130,7 +132,7 @@ int main()
 	sf::VertexArray line3;
 
 	tmx::Map map;
-	map.load("../assets/untitled.tmx");
+	map.load("../assets/map1.tmx");
 
 	MapLayer layerZero(map, 0);
 	MapLayer layerDepth(map, 2);

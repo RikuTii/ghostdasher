@@ -82,7 +82,7 @@ void Hostile::DoRandomMovement(float frameTime)
 
 	if (dist_len < 10.0f)
 	{
-		int dir = std::rand() % 80;
+		int dir = std::rand() % 280;
 
 		if (dir == 0)
 		{
@@ -240,7 +240,7 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 			}
 		}
 
-		m_move_delay = 0.6f;
+		m_move_delay = 0.2f;
 	}
 }
 

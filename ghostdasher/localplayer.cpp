@@ -119,7 +119,8 @@ void LocalPlayer::PlayAnimation(float frameTime)
 
 void LocalPlayer::DoDash()
 {
-	m_dash_time = 0.1f;
+	if(m_dash_time <= 0.0f)
+	m_dash_time = 10.1f;
 }
 
 

@@ -4,3 +4,5 @@ ghostdasher/x64/*
 x64/*
 ghostdasher.vcxproj*
 assets/*
+
+.vscode/*

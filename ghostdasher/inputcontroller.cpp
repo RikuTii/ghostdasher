@@ -51,10 +51,17 @@ void InputController::ReadInput(float frameTime)
 		m_localplayer->DoAttack();
 	}
 
+	static bool wasDashPressed = false;
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+	if (!wasDashPressed && sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
 	{
 		m_localplayer->DoDash();
+
+		wasDashPressed = true;
+	}
+	if (!sf::Keyboard::isKeyPressed(sf::Keyboard::Space))
+	{
+		wasDashPressed = false;
 	}
 
 
