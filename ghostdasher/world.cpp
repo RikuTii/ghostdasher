@@ -1,5 +1,6 @@
 #include "World.h"
 #include "entitymanager.h"
+#include "crate.h"
 
 World::World()
 {
@@ -12,17 +13,7 @@ World::World()
 	m_shape->setFillColor(sf::Color(80, 80, 80));
 	SetRenderState(RenderState::Draw);
 	m_unwalkable_spaces.clear();
-	//InitalizeWalkableSpace();
 }
-
-
-void World::InitalizeWalkableSpace()
-{
-	m_unwalkable_spaces.push_back(sf::FloatRect{ 400,400,300,300 });
-	m_unwalkable_spaces.push_back(sf::FloatRect{ 200,200,150,300 });
-	m_unwalkable_spaces.push_back(sf::FloatRect{ 200,600,300,80 });
-}
-
 
 void World::AddUnwalkableSpace(const sf::FloatRect& space)
 {
@@ -48,6 +39,11 @@ bool World::IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end)
 	traceStart.setOrigin(sf::Vector2f(-40, -40));
 	traceStartBottom.setOrigin(sf::Vector2f(40, 40));
 
+	if (!IsInViewBounds(start) || !IsInViewBounds(end))
+	{
+		return false;
+	}
+
 	for (auto& it : m_unwalkable_spaces)
 	{
 		if (traceStart.getGlobalBounds().intersects(it) && traceStartBottom.getGlobalBounds().intersects(it))
@@ -55,6 +51,26 @@ bool World::IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end)
 			return false;
 		}
 	}
+
+	return true;
+}
+
+
+bool World::IsInViewBounds(const sf::Vector2f& pos)
+{
+	const float half_w = m_view_size.x / 2;
+	const float half_h = m_view_size.y / 2;
+
+	if (pos.x < (m_view_position.x - half_w) || pos.x > (m_view_position.x + half_w))
+	{
+		return false;
+	}
+
+	if (pos.y < (m_view_position.y - half_h) || pos.y > (m_view_position.y + half_h))
+	{
+		return false;
+	}
+
 
 	return true;
 }
@@ -77,6 +93,22 @@ bool World::DoesIntersectWall(const sf::FloatRect& target)
 	}
 
 	return false;
+}
+
+std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
+{
+	//Add extra positions which can be destroyed later. Walls, crates etc
+	std::vector<sf::FloatRect> entity_pos;
+	for (auto& it : entityManager->GetEntitiesByType<Crate*>())
+	{
+		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
+	}
+
+	//Default positions. Mostly walls
+	std::vector<sf::FloatRect> positions = m_unwalkable_spaces;
+	positions.insert(positions.end(), entity_pos.begin(), entity_pos.end());
+
+	return positions;
 }
 
 void World::TryMovement(Entity* ent)
@@ -122,7 +154,7 @@ void World::TryMovement(Entity* ent)
 
 	const float scaleError = 30.0f;
 
-	for (auto& it : m_unwalkable_spaces)
+	for (auto& it : GetUnwalkableSpaces())
 	{
 
 		float x = it.left - 50;
@@ -296,7 +328,7 @@ int World::GetIntersection(const sf::Vector2f& position, Entity* ent)
 	}
 
 
-	std::vector<sf::FloatRect> positions = m_unwalkable_spaces;
+	std::vector<sf::FloatRect> positions = GetUnwalkableSpaces();
 	positions.insert(positions.end(), entity_pos.begin(), entity_pos.end());
 
 	for (auto& it : positions)
@@ -379,7 +411,6 @@ void World::SetPosition(const sf::Vector2f& pos)
 }
 
 
-
 void World::AddSpawnPoint(const sf::Vector2f& point)
 {
 	m_spawnpoints.push_back(point);
@@ -393,4 +424,22 @@ sf::Vector2f World::GetRandomSpawnPoint()
 		return sf::Vector2f();
 
 	return m_spawnpoints.at(index);
+}
+
+sf::Vector2f World::GetFurthestSpawnpoint(const sf::Vector2f& pos)
+{
+	float furtest_dist = 0.0f;
+	sf::Vector2f furthest_point;
+	for (auto it : m_spawnpoints)
+	{
+		sf::Vector2f delta = (it - pos);
+		float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+		if (dist > furtest_dist)
+		{
+			furtest_dist = dist;
+			furthest_point = it;
+		}
+	}
+
+	return furthest_point;
 }

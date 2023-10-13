@@ -16,7 +16,7 @@ public:
 	void LoadTextures();
 	bool CheckSwordCollision(const sf::FloatRect& target);
 	void DoDash();
-	void TakeDamage(const int damage, const sf::Vector2f& pos);
+	void TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type = MeleeDamage);
 	void PlayAnimation(float frameTime);
 
 

@@ -190,11 +190,11 @@ bool Hostile::CanSeePlayer()
 }
 
 
-void Hostile::GoToPosition(const sf::Vector2f& pos)
+void Hostile::GoToPosition()
 {
 	if (m_move_delay < 0.1f)
 	{
-		if (m_path.size() && m_path_finding && m_knockback_time < 0.0f)
+		if (m_path.size() && m_path_finding && m_knockback_time <= 0.0f)
 		{
 			if (m_current_path_index < m_path.size())
 			{
@@ -212,7 +212,6 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 				}
 				if (dist_len > 1.0f)
 				{
-
 
 					if (cur_pos.x < m_position.x)
 					{
@@ -232,7 +231,7 @@ void Hostile::GoToPosition(const sf::Vector2f& pos)
 						m_facing = Up;
 					}
 				}
-		
+
 
 				m_goal_position = m_position;
 
@@ -256,6 +255,12 @@ void Hostile::TakeDamage(const int amount, FacingDirection dir)
 	m_knockback_time = 5.0f;
 
 	m_last_damage_tick = globals->tick_count;
+
+	CalculateKnockback(dir);
+}
+
+void Hostile::CalculateKnockback(FacingDirection dir)
+{
 
 	World* world = entityManager->GetWorld();
 
@@ -322,7 +327,6 @@ void Hostile::TakeDamage(const int amount, FacingDirection dir)
 			}
 		}
 	}
-
 }
 
 void Hostile::DoKnockbackMove()
@@ -378,7 +382,7 @@ void Hostile::Process(float frameTime)
 	if (m_goal_position.x < 0.1f && m_goal_position.x > -0.1f)
 		m_goal_position = m_position;
 
-	
+
 
 	if (m_knockback_time > 0.0f)
 	{
@@ -411,7 +415,7 @@ void Hostile::Process(float frameTime)
 			m_path_finding = false;
 		}
 
-		if(!m_path_finding)
+		if (!m_path_finding)
 			DoRandomMovement(frameTime);
 	}
 

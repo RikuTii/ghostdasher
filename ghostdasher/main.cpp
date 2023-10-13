@@ -2,21 +2,26 @@
 #include "entity.h"
 #include "hostile.h"
 #include "firinghostile.h"
-
 #include "entitymanager.h"
 #include "inputcontroller.h"
 #include "pathfinder.h"
 #include "globals.h"
+#include <tmxlite/Map.hpp>
+#include "SFMLMapRender.h"
+#include "crate.h"
+#include "doorbutton.h"
+#include "door.h"
+#include "scaredhostile.h"
+
 constexpr float TICK_INTERVAL = 0.0078125f;
 
 std::unique_ptr<Globals> globals;
 
-#include <tmxlite/Map.hpp>
 
-#include "SFMLMapRender.h"
 
 std::mutex path_mutex;
 
+//Path finding thread for enemy pathfinding towards desired location. Expensive calculations so seperate thread
 void UpdateHostilePathfinding()
 {
 	while (true)
@@ -26,7 +31,7 @@ void UpdateHostilePathfinding()
 		for (int i = 0; i < entityManager->GetHighestEntityIndex(); i++)
 		{
 			Entity* ent = entityManager->GetEntity(i);
-			if (ent && ent->GetType() == EntityType::HostileEntity)
+			if (ent && (ent->GetType() == EntityType::HostileEntity || ent->GetType() == EntityType::ScaredHostileEntity))
 			{
 				Hostile* hostile = static_cast<Hostile*>(ent);
 				hostile->UpdatePath();
@@ -53,23 +58,6 @@ int main()
 	srand((int)time(0));
 
 	globals = std::make_unique<Globals>();
-	
-	sf::RectangleShape obstacle;
-	obstacle.setFillColor(sf::Color::Cyan);
-	obstacle.setSize(sf::Vector2f(300, 300));
-	obstacle.setPosition(sf::Vector2f(400, 400));
-
-
-
-	sf::RectangleShape obstacle2;
-	obstacle2.setFillColor(sf::Color::Yellow);
-	obstacle2.setSize(sf::Vector2f(150, 300));
-	obstacle2.setPosition(sf::Vector2f(200, 200));
-
-	sf::RectangleShape obstacle3;
-	obstacle3.setFillColor(sf::Color::Magenta);
-	obstacle3.setSize(sf::Vector2f(300, 80));
-	obstacle3.setPosition(sf::Vector2f(200, 600));
 
 	resourceManager = std::make_unique<ResourceManager>();
 
@@ -77,67 +65,15 @@ int main()
 
 	entityManager = std::make_unique<EntityManager>();
 
-
 	World* world = entityManager->CreateWorld();
-
-	LocalPlayer* localplayer = entityManager->CreateLocalPlayer();
-
-	std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
-
-
-	pathFinder = std::make_unique<PathFinder>(world);
-
-
-	Hostile* newent = entityManager->AddEntity(std::make_unique<FiringHostile>());
-//	entityManager->AddEntity(std::make_unique<Entity>());
-	//entityManager->AddEntity(std::make_unique<Hostile>());
-	//entityManager->AddEntity(std::make_unique<Entity>());
-
-
-
-	sf::CircleShape heart;
-	heart.setOutlineColor(sf::Color::Cyan);
-	heart.setRadius(20.0f);
-	heart.setFillColor(sf::Color::Black);
-	heart.setOutlineThickness(2);
-
-	sf::Text fps;
-	fps.setFillColor(sf::Color::White);
-	fps.setCharacterSize(26);
-	fps.setFont(resourceManager->GetPrimaryFont());
-	fps.setPosition(0, 0);
-	fps.setString("");
-
-
-	sf::Text pausedText;
-	pausedText.setFillColor(sf::Color::White);
-	pausedText.setCharacterSize(26);
-	pausedText.setFont(resourceManager->GetPrimaryFont());
-	pausedText.setPosition(window.getSize().x / 2, 0);
-	pausedText.setString("PAUSED");
-
-
-	std::deque<float> m_frameSmaples;
-	float last_frametime = 0.0f;
-
-	sf::View view = window.getDefaultView();
-	view.setSize(sf::Vector2f(view.getSize().x, view.getSize().y));
-
-	sf::View gameView = window.getDefaultView();
-
-	gameView.zoom(1.2f);
-	sf::RectangleShape start;
-	sf::VertexArray line;
-	sf::VertexArray line2;
-	sf::VertexArray line3;
 
 	tmx::Map map;
 	map.load("../assets/map1.tmx");
 
 	MapLayer layerZero(map, 0);
-	MapLayer layerDepth(map, 2);
 
 	const auto& layers = map.getLayers();
+	//Parse objects from map file for spawning, collisions etc
 	for (const auto& layer : layers)
 	{
 		if (layer->getType() == tmx::Layer::Type::Object)
@@ -159,18 +95,63 @@ int main()
 	}
 
 
-	std::vector<Hostile*> ents = entityManager->GetEntitiesByType<Hostile*>();
-	std::vector<Entity*> ents1 = entityManager->GetEntitiesByType<Entity*>();
+	LocalPlayer* localplayer = entityManager->CreateLocalPlayer();
 
-	std::cout << "ents " << ents.size()  << " ents 2 " << ents1.size() << std::endl;
+	std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
 
+	pathFinder = std::make_unique<PathFinder>(world);
+
+	Hostile* newent = entityManager->AddEntity(std::make_unique<FiringHostile>());
+	entityManager->AddEntity(std::make_unique<ScaredHostile>());
+
+	Crate* test_crate = entityManager->AddEntity(std::make_unique<Crate>());
+	Door* boss_door = entityManager->AddEntity(std::make_unique<Door>(sf::Vector2f(80,100)));
+
+	std::vector<sf::Vector2f> m_button_positions = { sf::Vector2f(300,300),  sf::Vector2f(500,320),  sf::Vector2f(600,600) };
+	for (auto it : m_button_positions)
+	{
+		entityManager->AddEntity(std::make_unique<DoorButton>(it));
+	}
+
+	sf::CircleShape heart;
+	heart.setOutlineColor(sf::Color::Cyan);
+	heart.setRadius(20.0f);
+	heart.setFillColor(sf::Color::Black);
+	heart.setOutlineThickness(2);
+
+	sf::Text fps;
+	fps.setFillColor(sf::Color::White);
+	fps.setCharacterSize(26);
+	fps.setFont(resourceManager->GetPrimaryFont());
+	fps.setString("FPS: 1000");
+	fps.setPosition(window.getSize().x - fps.getLocalBounds().width, 0);
+
+
+	sf::Text pausedText;
+	pausedText.setFillColor(sf::Color::White);
+	pausedText.setCharacterSize(26);
+	pausedText.setFont(resourceManager->GetPrimaryFont());
+	pausedText.setPosition(window.getSize().x / 2, 0);
+	pausedText.setString("PAUSED");
+
+
+	std::deque<float> m_frameSmaples;
+	float last_frametime = 0.0f;
+
+	sf::View view = window.getDefaultView();
+	view.setSize(sf::Vector2f(view.getSize().x, view.getSize().y));
+
+	sf::View gameView = window.getDefaultView();
+	gameView.zoom(1.2f);
+	
 	newent->SetPosition(world->GetRandomSpawnPoint());
 	newent->SetGoalPosition(newent->GetPosition());
 	localplayer->SetPosition(world->GetRandomSpawnPoint());
+	test_crate->SetPosition(world->GetRandomSpawnPoint());
 
 	std::thread pathfinding_thread(UpdateHostilePathfinding);
 	bool paused = false;
-
+	int m_last_tick = 0;
 	while (window.isOpen())
 	{
 		sf::Time elapsed = clock.restart();
@@ -180,6 +161,12 @@ int main()
 		{
 			if (event.type == sf::Event::Closed)
 				window.close();
+
+			if (event.type == sf::Event::LostFocus)
+				paused = true;
+
+			if (event.type == sf::Event::GainedFocus)
+				paused = false;
 
 			if (event.type == sf::Event::KeyReleased)
 			{
@@ -196,7 +183,7 @@ int main()
 					localplayer->Respawn();
 					entityManager->ResetAll();
 					for(int i = 0;i < 11;i++)
-					entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
+						entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
 				}
 			}
 		}
@@ -209,12 +196,15 @@ int main()
 		globals->tick_count = static_cast<int>(globals->curtime / globals->interval_per_tick);
 
 
-
 		window.setView(gameView);
 		gameView.setCenter(localplayer->GetPosition());
 
+		world->UpdateView(gameView.getCenter(), gameView.getSize());
+
 		if (!paused)
 		{
+			//Process all entity logic. Position, movement etc
+		
 			entityManager->ProcessEntityLogic(elapsed.asSeconds());
 			if (localplayer->IsAlive())
 			{
@@ -222,9 +212,12 @@ int main()
 
 				inputcontroller->ReadInput(elapsed.asSeconds());
 			}
+
+			m_last_tick = globals->tick_count;
 		}
 
 
+		//Check localplayer sword hits against enemies
 		for (int i = 0; i < entityManager->GetHighestEntityIndex(); i++)
 		{
 			Entity* ent = entityManager->GetEntity(i);
@@ -232,61 +225,53 @@ int main()
 			{
 				Hostile* hostile = static_cast<Hostile*>(ent);
 
-				sf::Vector2f dist = (localplayer->GetPosition() - hostile->GetPosition());
-
-				float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
-
-				start.setPosition(localplayer->GetPosition());
-				start.setSize(sf::Vector2f(1, dist_len));
-				sf::Vector2f additional = rand() % 100 < 10 ? sf::Vector2f((float)(rand() % 500), (float)(rand() % 500)) : sf::Vector2f(0, 0);
-				sf::Vector2f delta = (localplayer->GetPosition() - hostile->GetPosition());
-
-				if (dist_len < 40.0f)
-				{
-					localplayer->TakeDamage(50, hostile->GetPosition());
-				}
-
-				float angle = atan2f(hostile->GetPosition().x - start.getPosition().x, hostile->GetPosition().y - start.getPosition().y) * 180 / 3.14f;
-				start.setRotation(-angle);
-
-				std::vector<sf::Vector2f> path;
-				std::vector<sf::Vector2f> path2;
-				std::vector<sf::Vector2f> path3;
-
-				World* world = entityManager->GetWorld();
-
-			//	hostile->SetPosition(sf::Vector2f(30, 600));
-				hostile->GoToPosition(localplayer->GetPosition());
-
-				sf::Vector2f startPos = hostile->GetPosition();
-
-				const float step = 5.0f;
-				sf::Vector2f local_pos = localplayer->GetPosition();
-			
-				if (world->IsPointVisible(local_pos,startPos))
-				{
-					start.setFillColor(sf::Color::Green);
-				}
-				else
-				{
-					start.setFillColor(sf::Color::Red);
-
-				}
-
-
+				hostile->GoToPosition();
 
 				if (localplayer->CheckSwordCollision(hostile->GetBounds()))
 				{
-					std::cout << "hit ent " << ent->GetPosition().x << std::endl;;
-				//	hostile->SetPosition(hostile->GetPosition() - sf::Vector2f(delta.x * 2, delta.y * 2) / (elapsed.asSeconds() * 300));
 					hostile->TakeDamage(50, localplayer->GetFacing());
-
-
 				}
 			}
 		}
 
+		for (const auto& it : entityManager->GetEntitiesByType<ScaredHostile*>())
+		{
+			if (localplayer->CheckSwordCollision(it->GetBounds()))
+			{
+				it->TakeDamage(50, localplayer->GetFacing());
+			}
+		}
 
+		//Check for destroyable crates
+		for (const auto& it : entityManager->GetEntitiesByType<Crate*>())
+		{
+			if (localplayer->CheckSwordCollision(it->GetBounds()))
+			{
+				it->Delete();
+			}
+		}
+
+		int pressed = 0;
+		for (const auto& it : entityManager->GetEntitiesByType<DoorButton*>())
+		{
+			if (localplayer->GetBounds().intersects(it->GetBounds()))
+			{
+				it->SetPressed();
+			}
+
+			if (it->IsPressed())
+			{
+				pressed++;
+			}
+		}
+
+		if (pressed > 2)
+		{
+			boss_door->SetOpen();
+		}
+
+
+		//Calculate average frames per second
 		m_frameSmaples.push_back(elapsed.asSeconds());
 
 		if (m_frameSmaples.size() > 10)
@@ -301,10 +286,12 @@ int main()
 		}
 
 		const int average_fps = static_cast<int>(1.0f / (avg / m_frameSmaples.size()));
-		fps.setString("FPS " + std::to_string(average_fps));
+		fps.setString("FPS: " + std::to_string(average_fps));
 
 		last_frametime = elapsed.asSeconds();
 
+
+		//Clear previous window drawings
 		window.clear(sf::Color(43, 43, 43));
 		world->Render(window);
 		if (localplayer->IsAlive())
@@ -312,20 +299,11 @@ int main()
 			localplayer->Render(window);
 		}
 
-/*		window.draw(obstacle);
-		window.draw(obstacle2);
-		window.draw(obstacle3);*/
-	//	window.draw(start);
 		window.draw(layerZero);
-		window.draw(layerDepth);
 
 
-
+		//Render each entiy with their specified render function
 		entityManager->RenderEntities(window);
-
-	//	window.draw(line);
-	//	window.draw(line2);
-	//	window.draw(line3);
 
 		window.setView(view);
 		window.draw(fps);
@@ -334,12 +312,12 @@ int main()
 			window.draw(pausedText);
 		}
 
-
+		//Draw current player health
 		for (int i = 0; i < localplayer->GetHealth(); i += 50)
 		{
 			window.draw(heart);
 
-			heart.setPosition(sf::Vector2f(i + 100, 30));
+			heart.setPosition(sf::Vector2f(i + 5, 10));
 		}
 
 		window.display();

@@ -15,8 +15,9 @@ public:
 	void SetPosition(const sf::Vector2f& pos);
 	void Process(float frameTime);
 	void DoRandomMovement(float frameTime);
-	void TakeDamage(const int amount, FacingDirection dir);
-	void GoToPosition(const sf::Vector2f&);
+	virtual void TakeDamage(const int amount, FacingDirection dir);
+	void CalculateKnockback(FacingDirection dir);
+	void GoToPosition();
 	bool CanSeePlayer();
 	void UpdatePath();
 	void DoKnockbackMove();

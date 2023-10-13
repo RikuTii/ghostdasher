@@ -15,6 +15,17 @@ enum EntityType
 	LocalplayerEntity,
 	PlayerEntity,
 	HostileEntity,
+	CrateEntity,
+	DoorButtonEntity,
+	DoorEntity,
+	ScaredHostileEntity
+};
+
+
+enum DamageType
+{
+	MeleeDamage,
+	ProjectileDamage
 };
 
 enum FacingDirection

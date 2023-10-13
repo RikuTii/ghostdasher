@@ -149,97 +149,104 @@ void LocalPlayer::DoKnockbackMove()
 	}
 }
 
-void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos)
+void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type)
 {
 	if ((globals->tick_count - m_last_damage_tick) > 128)
 	{
 		m_health -= damage;
 		m_knockback_time = 30.0f;
 
-		World* world = entityManager->GetWorld();
+		if (type == MeleeDamage)
+		{
 
-		const float moveDistance = 150.0f;
-		FacingDirection dir = FacingDirection::Down;
+			World* world = entityManager->GetWorld();
 
-		float angle = atan2f(pos.x - m_position.x, pos.y - m_position.y) * 180 / 3.14f;
-		if (angle > 0.0f && angle < 90.0f)
-		{
-			dir = FacingDirection::Left;
-		}
-		else if (angle >= 90.0f && angle < 180.0f)
-		{
-			dir = FacingDirection::Down;
-		}
-		else if (angle < 0.0f && angle > -90.0f)
-		{
-			dir = FacingDirection::Right;
-		}
-		else if (angle <= -90.0f && angle > -180.0f)
-		{
-			dir = FacingDirection::Up;
-		}
-		if (dir == FacingDirection::Right)
-		{
-			m_goal_position = m_position + sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position);
-			if (intersection & IntersectionDirection::InteresecRight)
+			const float moveDistance = 150.0f;
+			FacingDirection dir = FacingDirection::Down;
+
+			float angle = atan2f(pos.x - m_position.x, pos.y - m_position.y) * 180 / 3.14f;
+			if (angle > 0.0f && angle < 90.0f)
 			{
-				while (true)
+				dir = FacingDirection::Left;
+			}
+			else if (angle >= 90.0f && angle < 180.0f)
+			{
+				dir = FacingDirection::Down;
+			}
+			else if (angle < 0.0f && angle > -90.0f)
+			{
+				dir = FacingDirection::Right;
+			}
+			else if (angle <= -90.0f && angle > -180.0f)
+			{
+				dir = FacingDirection::Up;
+			}
+			if (dir == FacingDirection::Right)
+			{
+				m_goal_position = m_position + sf::Vector2f(moveDistance, 0);
+				int intersection = world->GetIntersection(m_goal_position);
+				if (intersection & IntersectionDirection::InteresecRight)
 				{
-					m_goal_position.x -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
-					if (m_goal_position.x < m_position.x || !(intersection & IntersectionDirection::InteresecRight))
-						break;
+					while (true)
+					{
+						m_goal_position.x -= 5.0f;
+						intersection = world->GetIntersection(m_goal_position);
+						if (m_goal_position.x < m_position.x || !(intersection & IntersectionDirection::InteresecRight))
+							break;
+					}
+				}
+
+			}
+			else if (dir == FacingDirection::Left)
+			{
+				m_goal_position = m_position - sf::Vector2f(moveDistance, 0);
+				int intersection = world->GetIntersection(m_goal_position);
+				if (intersection & IntersectionDirection::InteresecLeft)
+				{
+					while (true)
+					{
+						m_goal_position.x += 5.0f;
+						intersection = world->GetIntersection(m_goal_position);
+						if (m_goal_position.x > m_position.x || !(intersection & IntersectionDirection::InteresecLeft))
+							break;
+					}
 				}
 			}
-
-		}
-		else if (dir == FacingDirection::Left)
-		{
-			m_goal_position = m_position - sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position);
-			if (intersection & IntersectionDirection::InteresecLeft)
+			else if (dir == FacingDirection::Down)
 			{
-				while (true)
+				m_goal_position = m_position + sf::Vector2f(0, moveDistance);
+				int intersection = world->GetIntersection(m_goal_position);
+				if (intersection & IntersectionDirection::InteresecDown)
 				{
-					m_goal_position.x += 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
-					if (m_goal_position.x > m_position.x || !(intersection & IntersectionDirection::InteresecLeft))
-						break;
+					while (true)
+					{
+						m_goal_position.y -= 5.0f;
+						intersection = world->GetIntersection(m_goal_position);
+						if (m_goal_position.y < m_position.y || !(intersection & IntersectionDirection::InteresecDown))
+							break;
+					}
+				}
+			}
+			else if (dir == FacingDirection::Up)
+			{
+				m_goal_position = m_position - sf::Vector2f(0, moveDistance);
+				int intersection = world->GetIntersection(m_goal_position);
+				if (intersection & IntersectionDirection::InteresecUp)
+				{
+					while (true)
+					{
+						m_goal_position.y += 5.0f;
+						intersection = world->GetIntersection(m_goal_position);
+						if (m_goal_position.y > m_position.y || !(intersection & IntersectionDirection::InteresecUp))
+							break;
+					}
 				}
 			}
 		}
-		else if (dir == FacingDirection::Down)
+		else
 		{
-			m_goal_position = m_position + sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position);
-			if (intersection & IntersectionDirection::InteresecDown)
-			{
-				while (true)
-				{
-					m_goal_position.y -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
-					if (m_goal_position.y < m_position.y || !(intersection & IntersectionDirection::InteresecDown))
-						break;
-				}
-			}
+			m_goal_position = m_position;
 		}
-		else if (dir == FacingDirection::Up)
-		{
-			m_goal_position = m_position - sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position);
-			if (intersection & IntersectionDirection::InteresecUp)
-			{
-				while (true)
-				{
-					m_goal_position.y += 5.0f;
-					intersection = world->GetIntersection(m_goal_position);
-					if (m_goal_position.y > m_position.y || !(intersection & IntersectionDirection::InteresecUp))
-						break;
-				}
-			}
-		}
-
 
 
 		m_last_damage_tick = globals->tick_count;
