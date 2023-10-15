@@ -26,7 +26,7 @@ ScaredHostile::ScaredHostile()
 	m_spotted_text->setFont(resourceManager->GetPrimaryFont());
 	m_spotted_text->setString("!");
 
-	m_retreate_time = 0.0f;
+	m_retreat_time = 0.0f;
 
 }
 void ScaredHostile::LoadTextures()
@@ -74,7 +74,7 @@ void ScaredHostile::TakeDamage(const int amount, FacingDirection dir)
 
 	CalculateKnockback(dir);
 
-	m_retreate_time = 1350.0f;
+	m_retreat_time = 1350.0f;
 
 
 	World* world = entityManager->GetWorld();
@@ -121,7 +121,7 @@ void ScaredHostile::Process(float frameTime)
 	}
 	else
 	{
-		if(m_retreate_time <= 0.0f)
+		if(m_retreat_time <= 0.0f)
 		if (CanSeePlayer())
 		{
 			if (!m_path_finding)
@@ -190,9 +190,9 @@ void ScaredHostile::Process(float frameTime)
 		m_spotted_time -= frameTime * 10.0f;
 	}
 
-	if (m_retreate_time > 0.0f)
+	if (m_retreat_time > 0.0f)
 	{
-		m_retreate_time -= frameTime * 100.0f;
+		m_retreat_time -= frameTime * 100.0f;
 	}
 
 

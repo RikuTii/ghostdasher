@@ -29,6 +29,11 @@ public:
 		m_facing = dir;
 	}
 
+	FacingDirection GetFacing()
+	{
+		return m_facing;
+	}
+
 	sf::FloatRect GetBounds()
 	{
 		return m_shape->getGlobalBounds();

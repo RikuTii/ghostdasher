@@ -84,8 +84,12 @@ public:
             m_chunkSize.y = std::floor(m_chunkSize.y / tileSize.y) * tileSize.y;
             m_MapTileSize.x = map.getTileSize().x;
             m_MapTileSize.y = map.getTileSize().y;
+
             const auto& layer = layers[idx]->getLayerAs<tmx::TileLayer>();
+            m_layerOpacity = layer.getOpacity();
+
             createChunks(map, layer);
+
 
             auto mapSize = map.getBounds();
             m_globalBounds.width = mapSize.width;
@@ -126,6 +130,15 @@ public:
         return selectedChunk->getColor(chunkLocale.x, chunkLocale.y);
     }
 
+    void setOpacity(float opacity, bool refresh)
+    {
+        m_layerOpacity = opacity;
+        for (auto& c : m_visibleChunks)
+        {
+            c->setOpacity(opacity, refresh);
+        }
+    }
+
     void update(sf::Time elapsed)
     {
         for (auto& c : m_visibleChunks)
@@ -163,6 +176,7 @@ private:
     sf::Vector2u m_chunkCount;
     sf::Vector2u m_MapTileSize;   // general Tilesize of Map
     sf::FloatRect m_globalBounds;
+    float m_layerOpacity = 1.0f;
 
     using TextureResource = std::map<std::string, std::unique_ptr<sf::Texture>>;
     TextureResource m_textureResource;
@@ -184,11 +198,11 @@ private:
         using Tile = std::array<sf::Vertex, 6u>;
         Chunk(const tmx::TileLayer& layer, std::vector<const tmx::Tileset*> tilesets,
             const sf::Vector2f& position, const sf::Vector2f& tileCount, const sf::Vector2u& tileSize,
-            std::size_t rowSize, TextureResource& tr, const std::map<std::uint32_t, tmx::Tileset::Tile>& animTiles)
+            std::size_t rowSize, TextureResource& tr, const std::map<std::uint32_t, tmx::Tileset::Tile>& animTiles, float opacity)
             : m_animTiles(animTiles)
         {
             setPosition(position);
-            layerOpacity = static_cast<sf::Uint8>(layer.getOpacity() / 1.f * 255.f);
+            layerOpacity = static_cast<sf::Uint8>(opacity / 1.f * 255.f);
             sf::Color vertColour = sf::Color(200, 200, 200, layerOpacity);
             auto offset = layer.getOffset();
             layerOffset = { static_cast<float>(offset.x), static_cast<float>(offset.y) };
@@ -255,7 +269,7 @@ private:
                             }
 
                             sf::Vector2f tileOffset(static_cast<float>(x) * mapTileSize.x, static_cast<float>(y) * mapTileSize.y + mapTileSize.y - ca->tileSetSize.y);
-
+                            m_chunkColors[idx].a = layerOpacity;
                             auto idIndex = m_chunkTileIDs[idx].ID - ca->m_firstGID;
                             sf::Vector2f tileIndex(idIndex % ca->tsTileCount.x, idIndex / ca->tsTileCount.x);
                             tileIndex.x *= ca->tileSetSize.x;
@@ -300,6 +314,13 @@ private:
             m_chunkColors[calcIndexFrom(x, y)] = color;
             maybeRegenerate(refresh);
         }
+
+        void setOpacity(float opacity, bool refresh)
+        {
+            layerOpacity = opacity;
+            maybeRegenerate(refresh);
+        }
+
         void maybeRegenerate(bool refresh)
         {
             if (refresh)
@@ -575,7 +596,7 @@ private:
                 //m_chunks.emplace_back(std::make_unique<Chunk>(layer, usedTileSets,
                 //    sf::Vector2f(x * m_chunkSize.x, y * m_chunkSize.y), tileCount, map.getTileCount().x, m_textureResource));
                 m_chunks.emplace_back(std::make_unique<Chunk>(layer, usedTileSets,
-                    sf::Vector2f(x * m_chunkSize.x, y * m_chunkSize.y), tileCount, tileSize, map.getTileCount().x, m_textureResource, map.getAnimatedTiles()));
+                    sf::Vector2f(x * m_chunkSize.x, y * m_chunkSize.y), tileCount, tileSize, map.getTileCount().x, m_textureResource, map.getAnimatedTiles(), m_layerOpacity));
             }
         }
     }

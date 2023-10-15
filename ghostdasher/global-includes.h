@@ -10,5 +10,6 @@
 #include <array>
 #include <chrono>
 #include <thread>
+#include <queue>
 
 class ResourceManager;

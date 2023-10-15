@@ -22,5 +22,5 @@ private:
 	std::unique_ptr<sf::Sprite> m_shape;
 	std::unique_ptr<sf::Text> m_spotted_text;
 	sf::Texture* m_texture;
-	float m_retreate_time;
+	float m_retreat_time;
 };

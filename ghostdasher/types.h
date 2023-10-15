@@ -18,7 +18,8 @@ enum EntityType
 	CrateEntity,
 	DoorButtonEntity,
 	DoorEntity,
-	ScaredHostileEntity
+	ScaredHostileEntity,
+	BouncingBossEntity
 };
 
 

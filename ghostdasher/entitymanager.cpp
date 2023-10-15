@@ -38,6 +38,7 @@ void EntityManager::RemoveEntity(size_t index)
 void EntityManager::ResetAll()
 {
 	m_entities.clear();
+	m_highest_entity_index = 0;
 }
 
 Entity* EntityManager::GetEntity(size_t index)

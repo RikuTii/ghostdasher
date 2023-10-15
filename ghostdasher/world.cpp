@@ -1,6 +1,7 @@
 #include "World.h"
 #include "entitymanager.h"
 #include "crate.h"
+#include "door.h"
 
 World::World()
 {
@@ -13,6 +14,7 @@ World::World()
 	m_shape->setFillColor(sf::Color(80, 80, 80));
 	SetRenderState(RenderState::Draw);
 	m_unwalkable_spaces.clear();
+	m_waypoint_size = 100.0f;
 }
 
 void World::AddUnwalkableSpace(const sf::FloatRect& space)
@@ -95,6 +97,33 @@ bool World::DoesIntersectWall(const sf::FloatRect& target)
 	return false;
 }
 
+
+
+std::vector<Waypoint> World::GenerateWayPoints()
+{
+	if (m_points.size()) return m_points;
+	int id = 0;
+	for (float y = 0.0f; y < GetWorldBounds().y; y += m_waypoint_size)
+	{
+		for (float x = 0.0f; x < GetWorldBounds().x; x += m_waypoint_size)
+		{
+			if (DoesIntersectWall(sf::FloatRect(x, y, 30, 30)))
+			{
+				m_points.push_back(Waypoint(id, false,sf::Vector2f(x, y), (int)x, (int)y, 0, 0, 0));
+				id++;
+				continue;
+			}
+
+			m_points.push_back(Waypoint(id, true,sf::Vector2f(x, y), (int)x, (int)y, 0, 0, 0));
+			id++;
+
+		}
+	}
+
+	return m_points;
+	
+}
+
 std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
 {
 	//Add extra positions which can be destroyed later. Walls, crates etc
@@ -103,7 +132,10 @@ std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
 	{
 		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
 	}
-
+	for (auto& it : entityManager->GetEntitiesByType<Door*>())
+	{
+		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
+	}
 	//Default positions. Mostly walls
 	std::vector<sf::FloatRect> positions = m_unwalkable_spaces;
 	positions.insert(positions.end(), entity_pos.begin(), entity_pos.end());
@@ -111,7 +143,7 @@ std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
 	return positions;
 }
 
-void World::TryMovement(Entity* ent)
+bool World::TryMovement(Entity* ent)
 {
 	sf::Vector2f position = ent->GetPosition();
 	const float edgeSpeedScale = 5;
@@ -119,199 +151,40 @@ void World::TryMovement(Entity* ent)
 	sf::Vector2f new_velocity = ent->GetVelocity();
 	sf::Vector2f new_velocity_goal = ent->GetVelocityGoal();
 
-	if (position.x < 0.0f)
-	{
-		new_position.x = 0.0f;
-		new_velocity.x = edgeSpeedScale;
-		new_velocity_goal.x = edgeSpeedScale;
-
-	}
-	if (position.x > m_bounds.x)
-	{
-		new_position.x = m_bounds.x;
-		new_velocity.x = -edgeSpeedScale;
-		new_velocity_goal.x = -edgeSpeedScale;
-
-	}
-
-	if (position.y < 0.0f)
-	{
-		new_position.y = 0.0f;
-		new_velocity.y = edgeSpeedScale;
-		new_velocity_goal.y = edgeSpeedScale;
-
-	}
-	if (position.y > m_bounds.y)
-	{
-		new_position.y = m_bounds.y;
-		new_velocity.y = -edgeSpeedScale;
-		new_velocity_goal.y = -edgeSpeedScale;
-
-	}
-
-	const float velModifierBounce = 0;
+	const float velModifierBounce = 200;
 	const float positionAdjust = 30.0f;
 
 	const float scaleError = 30.0f;
-
+	bool can_move = true;
 	for (auto& it : GetUnwalkableSpaces())
 	{
 
-		float x = it.left - 50;
-		float y = it.top - 50;
-		float w = it.left + it.width + 50;
-		float h = it.top + it.height + 50;
+		float x = it.left - 30;
+		float y = it.top - 30;
+		float w = it.left + it.width + 30;
+		float h = it.top + it.height + 30;
 
-
-		if (position.x > x && position.x < w && (position.y < h && position.y > y))
+		if (position.x > x && position.x < w)
 		{
-
-			if (position.x > x && position.x < w - 70)
+			if (position.y > y && position.y < h)
 			{
-				float diff_x = (position.x - x);
-				float diff_y = (position.y - y);
-
-				if (position.y > y && position.y < h - 70)
-				{
-
-
-					if (position.y > y)
-					{
-						if (diff_x < diff_y)
-							new_position.x = x;
-						else
-							new_position.y = y;
-
-					}
-					else
-						new_position.x = x;
-				}
-				else
-				{
-					float diff_x = (position.x - w);
-					float diff_y = (position.y - h);
-
-					if (position.x > w)
-					{
-						if (diff_y < diff_x)
-							new_position.y = h;
-						else
-							new_position.x = w;
-
-					}
-					else
-						new_position.y = h;
-
-				}
-
+				can_move = false;
+				new_velocity.x = -new_velocity.x;
+				new_velocity.y = -new_velocity.y;
 
 			}
-			else if (position.y > y && position.y < h - 70)
-			{
-				float diff_x = (position.x - x);
-				float diff_y = (position.y - y);
-
-				if (position.x > x && position.x < w - 70)
-				{
-					if (position.x > x)
-					{
-						if (diff_y < diff_x)
-							new_position.y = y;
-						else
-							new_position.x = x;
-
-					}
-					else
-						new_position.y = y;
-				}
-				else
-				{
-					float diff_x = (position.x - w);
-					float diff_y = (position.y - h);
-
-					if (position.y > h)
-					{
-						if (diff_x < diff_y)
-							new_position.x = w;
-						else
-							new_position.y = h;
-
-					}
-					else
-						new_position.x = w;
-				}
-			}
-			else if (position.x > x)
-			{
-				float diff_x = (position.x - w);
-				float diff_y = (position.y - h);
-
-				if (position.y > h)
-				{
-					if (diff_x < diff_y)
-						new_position.x = w;
-					else
-						new_position.y = h;
-
-				}
-				else
-					new_position.x = w;
-			}
-			else
-			{
-				float diff_x = (position.x - w);
-				float diff_y = (position.y - h);
-
-				if (position.x > w)
-				{
-					if (diff_y < diff_x)
-						new_position.y = h;
-					else
-						new_position.x = w;
-
-				}
-				else
-					new_position.y = h;
-
-			}
-
-
-
-			if (position.x > x && position.x < w - scaleError)
-			{
-				new_velocity.x = -velModifierBounce;
-				new_velocity_goal.x = -velModifierBounce;
-			}
-
-			else if (position.x > x + scaleError)
-			{
-				new_velocity.x = velModifierBounce;
-				new_velocity_goal.x = velModifierBounce;
-			}
-
-			if (position.y > y && position.y < h - scaleError)
-			{
-				new_velocity.y = -velModifierBounce;
-				new_velocity_goal.y = -velModifierBounce;
-			}
-
-			else if (position.y > y + scaleError)
-			{
-				new_velocity.y = velModifierBounce;
-				new_velocity_goal.y = velModifierBounce;
-
-			}
-		}
+		}	
 	}
 
 	ent->SetPosition(new_position);
 	ent->SetVelocity(new_velocity);
 	ent->SetGoalVelocity(new_velocity_goal);
 
+	return can_move;
 }
 
 
-int World::GetIntersection(const sf::Vector2f& position, Entity* ent)
+int World::GetIntersection(const sf::Vector2f& position, Entity* ent, bool first)
 {
 	const float velModifierBounce = 5;
 
@@ -346,11 +219,13 @@ int World::GetIntersection(const sf::Vector2f& position, Entity* ent)
 			if (position.x > x && position.x < w - scaleError)
 			{
 				intersection |= IntersectionDirection::InteresecRight;
+				if (first) return intersection;
 			}
 
 			else if (position.x > x + scaleError)
 			{
 				intersection |= IntersectionDirection::InteresecLeft;
+				if (first) return intersection;
 
 			}
 
@@ -358,33 +233,19 @@ int World::GetIntersection(const sf::Vector2f& position, Entity* ent)
 			if (position.y > y && position.y < h - scaleError)
 			{
 				intersection |= IntersectionDirection::InteresecDown;
+				if (first) return intersection;
 
 			}
 
 			else if (position.y > y + scaleError)
 			{
 				intersection |= IntersectionDirection::InteresecUp;
+				if (first) return intersection;
 
 			}
 		}
 	}
 
-	if (position.x < 0.0f)
-	{
-		intersection |= IntersectionDirection::InteresecLeft;
-	}
-	if (position.x > m_bounds.x)
-	{
-		intersection |= IntersectionDirection::InteresecRight;
-	}
-	if (position.y < 0.0f)
-	{
-		intersection |= IntersectionDirection::InteresecUp;
-	}
-	if (position.y > m_bounds.y)
-	{
-		intersection |= IntersectionDirection::InteresecDown;
-	}
 
 	return intersection;
 }

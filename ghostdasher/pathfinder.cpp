@@ -1,7 +1,7 @@
 #include "pathfinder.h"
 
 std::unique_ptr<PathFinder> pathFinder;
-std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::Vector2f& start, const sf::Vector2f& end)
+std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity* entity, const sf::Vector2f& start, const sf::Vector2f& end)
 {
 	std::vector<sf::Vector2f> path_pos;
 	std::vector<sf::Vector2f> path_pos1;
@@ -59,6 +59,201 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity*entity, const sf::
 
 	return path_pos;
 }
+std::vector<sf::Vector2f> PathFinder::GenerateBestPathAStar(Entity* entity, const sf::Vector2f& start_pos, const sf::Vector2f& end_pos)
+{
+	std::vector<sf::Vector2f> path_pos;
+
+	static std::vector<Waypoint> waypoints = m_world->GenerateWayPoints();
+	int waypoint_size = m_world->GetWaypointsWidth();
+
+
+	auto get_distance = [](Waypoint a, Waypoint b)
+		{
+			int distance_x = std::abs(a.x - b.x);
+			int distance_y = std::abs(a.y - b.y);
+
+			if (distance_x > distance_y)
+			{
+				return 14 * distance_y + 10 * (distance_x - distance_y);
+			}
+
+			return 14 * distance_x + 10 * (distance_y - distance_x);
+		};
+
+	auto get_waypoint = [&waypoint_size](const sf::Vector2f& pos)
+		{
+			size_t pos_x = (int)(pos.x / 100.0f);
+			size_t pos_y = (int)((pos.y / 100.0f)) * waypoint_size;
+			return pos_x + pos_y;
+		};
+
+	auto get_neightbours = [&waypoint_size](const sf::Vector2f& pos)
+		{
+			std::vector<size_t> m_neighbours;
+			for (int x = -1; x <= 1; x++)
+			{
+				for (int y = -1; y <= 1; y++)
+				{
+					size_t diag_pos_x = (int)(pos.x / 100.0f) + x;
+					size_t diag_pos_y = (int)((pos.y / 100.0f) + y) * waypoint_size;
+					m_neighbours.push_back(diag_pos_x + diag_pos_y);
+				}
+			}
+
+			return m_neighbours;
+		};
+
+
+	auto generate_path = [](Waypoint start, Waypoint end)
+		{
+			std::list<Waypoint> m_path;
+			Waypoint current = end;
+
+			while (current.id != start.id)
+			{
+				m_path.push_back(current);
+				if (current.parent_id == 0)
+				{
+					break;
+
+				}
+				if (waypoints.at(current.parent_id).parent_id == current.id)
+				{
+					break;
+				}
+				current = waypoints.at(current.parent_id);
+			}
+
+			m_path.reverse();
+
+			return m_path;
+
+		};
+
+	std::vector<Waypoint> open_set;
+	std::vector<Waypoint> closed_set;
+
+	if (get_waypoint(start_pos) >= waypoints.size() || get_waypoint(end_pos) >= waypoints.size())
+	{
+		return path_pos;
+	}
+
+	Waypoint start = waypoints.at(get_waypoint(start_pos));
+	start.parent_id = start.id;
+	open_set.push_back(start);
+	Waypoint end = waypoints.at(get_waypoint(end_pos));
+
+
+	bool can_find_walkable_start = false;
+	bool can_find_walkable_end = false;
+
+	if (start.m_walkable)
+	{
+		can_find_walkable_start = true;
+	}
+	else
+	{
+		std::vector<size_t> neighbours = get_neightbours(start_pos);
+		for (auto& it : neighbours)
+		{
+			if (waypoints.at(it).m_walkable)
+			{
+				can_find_walkable_start = true;
+				start = waypoints.at(it);
+			}
+		}
+	}
+
+	if (end.m_walkable)
+	{
+		can_find_walkable_end = true;
+	}
+	else
+	{
+		std::vector<size_t> neighbours = get_neightbours(end_pos);
+		for (auto& it : neighbours)
+		{
+			if (waypoints.at(it).m_walkable)
+			{
+				can_find_walkable_end = true;
+				end = waypoints.at(it);
+			}
+		}
+	}
+
+	if (can_find_walkable_start && can_find_walkable_end)
+	{
+		while (open_set.size())
+		{
+			Waypoint node = open_set[0];
+			for (int i = 1; i < open_set.size(); i++)
+			{
+				if (open_set[i].f_cost() < node.f_cost() || open_set[i].f_cost() == node.f_cost())
+				{
+					if (open_set[i].h_cost < node.h_cost)
+					{
+						node = open_set[i];
+					}
+				}
+			}
+
+			std::erase_if(open_set,
+				[=](auto const& ptr) { return ptr.id == node.id; });
+
+			closed_set.push_back(node);
+			if (node.id == end.id)
+			{
+				auto m_path = generate_path(start, end);
+				for (auto& it : m_path)
+				{
+					path_pos.push_back(it.m_position);
+				}
+				break;
+			}
+
+			std::vector<size_t> neighbours = get_neightbours(node.m_position);
+			for (auto& it : neighbours)
+			{
+				if (it >= waypoints.size())
+					continue;
+				Waypoint neighbour = waypoints.at(it);
+				auto closed_it = find_if(closed_set.begin(), closed_set.end(), [&](auto const& obj) { return obj.id == neighbour.id; });
+				auto open_it = find_if(open_set.begin(), open_set.end(), [&](auto const& obj) { return obj.id == neighbour.id; });
+
+				bool is_closed = closed_it != closed_set.end();
+
+				if (!neighbour.m_walkable || is_closed)
+				{
+					continue;
+				}
+
+				bool is_open = open_it != open_set.end();
+
+				int new_cost = node.g_cost + get_distance(node, neighbour);
+				if (new_cost < neighbour.g_cost || !is_open)
+				{
+					neighbour.g_cost = new_cost;
+					neighbour.h_cost = get_distance(neighbour, end);
+					neighbour.parent_id = node.id;
+
+					//this is needed so node parents are kept in check
+					waypoints.at(neighbour.id).parent_id = node.id;
+
+					if (!is_open)
+					{
+						open_set.push_back(neighbour);
+					}
+
+				}
+			}
+
+
+		}
+	}
+
+	return path_pos;
+}
+
 
 
 int PathFinder::AdjustMovement(const sf::Vector2f& start, const sf::Vector2f& end, sf::Vector2f& startPos)

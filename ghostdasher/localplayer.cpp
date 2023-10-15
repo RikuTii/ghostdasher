@@ -379,13 +379,64 @@ void LocalPlayer::ProcessMovement(float frameTime)
 
 	m_velocity = m_velocity_goal;
 
+
 	World* world = entityManager->GetWorld();
 
 
+	sf::Vector2f left = m_position + sf::Vector2f(20, 0);
+	int left_intersection = world->GetIntersection(left);
+	if (left_intersection & IntersectionDirection::InteresecRight)
+	{
+		if (m_velocity_goal.x > 0.0f)
+		{
+			m_velocity_goal.x = 0.0f;
+		}
+	}
+
+	sf::Vector2f right = m_position - sf::Vector2f(20, 0);
+	int right_intersection = world->GetIntersection(right);
+	if (right_intersection & IntersectionDirection::InteresecLeft)
+	{
+		if (m_velocity_goal.x < 0.0f)
+		{
+			m_velocity_goal.x = 0.0f;
+		}
+	}
+
+	sf::Vector2f up = m_position + sf::Vector2f(0, 20);
+	int up_intersection = world->GetIntersection(up);
+	if (up_intersection & IntersectionDirection::InteresecUp)
+	{
+		if (m_velocity_goal.y > 0.0f)
+		{
+			m_velocity_goal.y = 0.0f;
+		}
+	}
+
+	sf::Vector2f down = m_position - sf::Vector2f(0, 80);
+	int down_intersection = world->GetIntersection(down);
+	if (down_intersection & IntersectionDirection::InteresecDown)
+	{
+		if (m_velocity_goal.y < 0.0f)
+		{
+			m_velocity_goal.y = 0.0f;
+		}
+	}
+
+
+	m_velocity = m_velocity_goal;
+
+
+	sf::Vector2f old_position = m_position;
+	sf::Vector2f old_velocity = m_velocity;
+
 	m_position = m_position + (m_velocity * frameTime);
 
-	world->TryMovement(this);
+	if (!world->TryMovement(this))
+	{
+		m_position = old_position;
 
+	}
 
 	m_sword->setRotation(m_attack_angle - (m_attack_stage * 45.0f));
 

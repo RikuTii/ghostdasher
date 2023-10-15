@@ -210,6 +210,19 @@ void Hostile::GoToPosition()
 				{
 					m_position = cur_pos;
 				}
+			/*	sf::Vector2f dist = (cur_pos - m_position);
+				float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
+				sf::Vector2f delta = (cur_pos - m_path.at(m_current_path_index));
+				float delta_len = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+
+				sf::Vector2f delta_skip = (cur_pos - m_last_position);
+					float delta_skip_len = std::sqrt(delta_skip.x * delta_skip.x + delta_skip.y * delta_skip.y);
+
+
+		//		if(delta_skip_len < 5)
+				SetPosition(cur_pos + delta * -(0.05f));*/
+
+
 				if (dist_len > 1.0f)
 				{
 
@@ -234,7 +247,7 @@ void Hostile::GoToPosition()
 
 
 				m_goal_position = m_position;
-
+			//	if(dist_len < 10.0f)
 				m_current_path_index += 1;
 			}
 		}
@@ -419,7 +432,10 @@ void Hostile::Process(float frameTime)
 			DoRandomMovement(frameTime);
 	}
 
-
+	if (m_path_finding)
+	{
+		GoToPosition();
+	}
 
 	if (m_facing == Right)
 	{
