@@ -2,8 +2,19 @@
 
 FiringHostile::FiringHostile()
 {
+	Init();
+
+}
+
+FiringHostile::FiringHostile(const sf::Vector2f& pos)
+{
+	Init();
+	m_position = pos;
+}
+
+void FiringHostile::Init()
+{
 	m_shape = std::make_unique<sf::Sprite>();
-	//m_shape->setSize(sf::Vector2f(40, 40));
 
 	m_texture_sprite_size = sf::IntRect(0, 0, 24, 24);
 
@@ -15,6 +26,8 @@ FiringHostile::FiringHostile()
 	m_render_state = RenderState::Draw;
 	m_movement_speed = 700.0f;
 	m_type = EntityType::HostileEntity;
+	m_category = EntityCategory::CategoryGeneral;
+
 	m_health = 200;
 	LoadTextures();
 	m_shape->setScale(3.0f, 3.0f);
@@ -29,7 +42,6 @@ FiringHostile::FiringHostile()
 	m_spotted_text->setCharacterSize(40);
 	m_spotted_text->setFont(resourceManager->GetPrimaryFont());
 	m_spotted_text->setString("!");
-
 }
 void FiringHostile::LoadTextures()
 {
@@ -180,7 +192,7 @@ void FiringHostile::Process(float frameTime)
 
 		if (it->m_should_update)
 		{
-			float angle = atan2f(it->m_target_position.x - it->m_current_position.x, it->m_target_position.y - it->m_current_position.y) * 180 / 3.14f;
+			float angle = atan2f(it->m_target_position.x - it->m_current_position.x, it->m_target_position.y - it->m_current_position.y) * 180 / M_PI;
 			it->m_projectile_texture->setRotation(-angle);
 
 			sf::Vector2f delta = (it->m_target_position - it->m_current_position);

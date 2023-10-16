@@ -31,7 +31,7 @@ LocalPlayer::LocalPlayer()
 	m_total_animation_frames = 3;
 	m_animation_frame = 0;
 
-	m_health = 200;
+	m_health = 400;
 
 
 	LoadTextures();
@@ -119,8 +119,10 @@ void LocalPlayer::PlayAnimation(float frameTime)
 
 void LocalPlayer::DoDash()
 {
-	if(m_dash_time <= 0.0f)
-	m_dash_time = 10.1f;
+	if (m_dash_time <= 0.0f)
+	{
+		m_dash_time = 10.0f;
+	}
 }
 
 
@@ -151,7 +153,7 @@ void LocalPlayer::DoKnockbackMove()
 
 void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type)
 {
-	if ((globals->tick_count - m_last_damage_tick) > 128)
+	if ((globals->tick_count - m_last_damage_tick) > 256)
 	{
 		m_health -= damage;
 		m_knockback_time = 30.0f;
@@ -161,86 +163,45 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 			World* world = entityManager->GetWorld();
 
-			const float moveDistance = 150.0f;
-			FacingDirection dir = FacingDirection::Down;
+			float angle = atan2f(pos.x - m_position.x, pos.y - m_position.y);
 
-			float angle = atan2f(pos.x - m_position.x, pos.y - m_position.y) * 180 / 3.14f;
-			if (angle > 0.0f && angle < 90.0f)
+			sf::Vector2f delta = (pos - m_position);
+
+			sf::Vector2f end = m_position - (sf::Vector2f(std::cos(angle), std::sin(angle))) * 200.0f;
+			m_goal_position = m_position;
+
+			int maxSteps = 50;
+			while (true)
 			{
-				dir = FacingDirection::Left;
-			}
-			else if (angle >= 90.0f && angle < 180.0f)
-			{
-				dir = FacingDirection::Down;
-			}
-			else if (angle < 0.0f && angle > -90.0f)
-			{
-				dir = FacingDirection::Right;
-			}
-			else if (angle <= -90.0f && angle > -180.0f)
-			{
-				dir = FacingDirection::Up;
-			}
-			if (dir == FacingDirection::Right)
-			{
-				m_goal_position = m_position + sf::Vector2f(moveDistance, 0);
-				int intersection = world->GetIntersection(m_goal_position);
-				if (intersection & IntersectionDirection::InteresecRight)
+
+				if (world->GetIntersection(m_goal_position))
+					break;
+
+				if ((m_goal_position.x - end.x) < -3.0f)
 				{
-					while (true)
-					{
-						m_goal_position.x -= 5.0f;
-						intersection = world->GetIntersection(m_goal_position);
-						if (m_goal_position.x < m_position.x || !(intersection & IntersectionDirection::InteresecRight))
-							break;
-					}
+					m_goal_position.x += 2.0f;
+				}
+				else if((m_goal_position.x - end.x) > 3.0f)
+				{
+					m_goal_position.x -= 2.0f;
 				}
 
-			}
-			else if (dir == FacingDirection::Left)
-			{
-				m_goal_position = m_position - sf::Vector2f(moveDistance, 0);
-				int intersection = world->GetIntersection(m_goal_position);
-				if (intersection & IntersectionDirection::InteresecLeft)
+				if ((m_goal_position.y - end.y) < -3.0f)
 				{
-					while (true)
-					{
-						m_goal_position.x += 5.0f;
-						intersection = world->GetIntersection(m_goal_position);
-						if (m_goal_position.x > m_position.x || !(intersection & IntersectionDirection::InteresecLeft))
-							break;
-					}
+					m_goal_position.y += 2.0f;
 				}
-			}
-			else if (dir == FacingDirection::Down)
-			{
-				m_goal_position = m_position + sf::Vector2f(0, moveDistance);
-				int intersection = world->GetIntersection(m_goal_position);
-				if (intersection & IntersectionDirection::InteresecDown)
+				else if ((m_goal_position.y - end.y) > 3.0f)
 				{
-					while (true)
-					{
-						m_goal_position.y -= 5.0f;
-						intersection = world->GetIntersection(m_goal_position);
-						if (m_goal_position.y < m_position.y || !(intersection & IntersectionDirection::InteresecDown))
-							break;
-					}
+					m_goal_position.x -= 2.0f;
 				}
-			}
-			else if (dir == FacingDirection::Up)
-			{
-				m_goal_position = m_position - sf::Vector2f(0, moveDistance);
-				int intersection = world->GetIntersection(m_goal_position);
-				if (intersection & IntersectionDirection::InteresecUp)
-				{
-					while (true)
-					{
-						m_goal_position.y += 5.0f;
-						intersection = world->GetIntersection(m_goal_position);
-						if (m_goal_position.y > m_position.y || !(intersection & IntersectionDirection::InteresecUp))
-							break;
-					}
-				}
+
+
+				if (maxSteps < 0)
+					break;
+
+
+				maxSteps--;
+	
 			}
 		}
 		else
@@ -262,6 +223,15 @@ bool LocalPlayer::CheckSwordCollision(const sf::FloatRect& target)
 	}
 
 	return false;
+}
+
+void LocalPlayer::DoAttack()
+{
+	if (m_attack_stage <= 0.0f && (globals->curtime - m_last_attack_time) > 0.5f)
+	{
+		m_attack_stage = 5.0f;
+		m_last_attack_time = globals->curtime;
+	}
 }
 
 void LocalPlayer::Process(float frameTime)
@@ -292,23 +262,23 @@ void LocalPlayer::Process(float frameTime)
 		m_current_animation = Idle;
 	}
 
-	if (m_facing == Right)
+	if (m_facing == Right && m_attack_stage <= 0.0f)
 	{
 		m_sword->move(sf::Vector2f(float(m_texture_sprite_size.width / 4 - 5), 0.0f));
 		m_attack_angle = 180.0f;
 	}
-	if (m_facing == Left)
+	if (m_facing == Left && m_attack_stage <= 0.0f)
 	{
 		m_sword->move(sf::Vector2f(float(-m_texture_sprite_size.width / 4 + 5), 0.0f));
 		m_attack_angle = 0;
 	}
 
-	if (m_facing == Down)
+	if (m_facing == Down && m_attack_stage <= 0.0f)
 	{
 		m_sword->move(sf::Vector2f(0, float(m_texture_sprite_size.height / 4 - 5)));
 		m_attack_angle = -90;
 	}
-	if (m_facing == Up)
+	if (m_facing == Up && m_attack_stage <= 0.0f)
 	{
 		m_sword->move(sf::Vector2f(0, float(-m_texture_sprite_size.height / 4 + 5)));
 		m_attack_angle = 90;

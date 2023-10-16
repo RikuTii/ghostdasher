@@ -10,7 +10,8 @@ class Hostile : public Entity
 {
 public:
 	Hostile();
-	~Hostile() {};
+	Hostile(const sf::Vector2f&);
+	virtual ~Hostile() {};
 	void Render(sf::RenderWindow& renderWindow);
 	void SetPosition(const sf::Vector2f& pos);
 	void Process(float frameTime);
@@ -19,6 +20,7 @@ public:
 	void CalculateKnockback(FacingDirection dir);
 	void GoToPosition();
 	bool CanSeePlayer();
+	virtual void Init();
 	void UpdatePath();
 	void DoKnockbackMove();
 	virtual void PlayAnimation(float frameTime);
@@ -54,6 +56,26 @@ public:
 		m_goal_position = pos;
 	}
 
+	bool IsPathFinding()
+	{
+		return m_path_finding;
+	}
+
+
+	void SetPath(std::vector<sf::Vector2f> path)
+	{
+		m_path = path;
+	}
+
+	void ResetPath()
+	{
+		m_current_path_index = 0;
+	}
+
+	sf::Vector2f GetTargetPosition()
+	{
+		return m_target_position;
+	}
 
 	enum Animation
 	{

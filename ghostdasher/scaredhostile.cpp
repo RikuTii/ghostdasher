@@ -2,6 +2,18 @@
 
 ScaredHostile::ScaredHostile()
 {
+	Init();
+
+}
+
+ScaredHostile::ScaredHostile(const sf::Vector2f& pos)
+{
+	Init();
+	m_position = pos;
+}
+
+void ScaredHostile::Init()
+{
 	m_shape = std::make_unique<sf::Sprite>();
 	m_texture_sprite_size = sf::IntRect(0, 0, 24, 24);
 	m_shape->setOrigin(sf::Vector2f(float(m_texture_sprite_size.width / 2), float(m_texture_sprite_size.height / 2)));
@@ -11,6 +23,7 @@ ScaredHostile::ScaredHostile()
 	m_render_state = RenderState::Draw;
 	m_movement_speed = 700.0f;
 	m_type = EntityType::ScaredHostileEntity;
+	m_category = EntityCategory::CategoryGeneral;
 	m_health = 200;
 	LoadTextures();
 	m_shape->setScale(3.0f, 3.0f);
@@ -27,7 +40,6 @@ ScaredHostile::ScaredHostile()
 	m_spotted_text->setString("!");
 
 	m_retreat_time = 0.0f;
-
 }
 void ScaredHostile::LoadTextures()
 {

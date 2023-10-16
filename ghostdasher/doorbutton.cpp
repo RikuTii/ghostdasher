@@ -12,6 +12,8 @@ void DoorButton::Init()
 	m_render_state = RenderState::Draw;
 	m_type = EntityType::DoorButtonEntity;
 	m_is_pressed = false;
+	m_category = EntityCategory::CategoryGeneral;
+
 }
 
 DoorButton::DoorButton()

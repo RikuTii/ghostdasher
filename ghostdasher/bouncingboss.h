@@ -6,6 +6,9 @@ class BouncingBoss : public Hostile
 {
 public:
 	BouncingBoss();
+	BouncingBoss(const sf::Vector2f&);
+
+	void Init();
 	void LoadTextures();
 	void Process(float frameTime);
 	void Render(sf::RenderWindow& renderWindow);
@@ -38,4 +41,5 @@ private:
 	float m_rotation_time;
 	float m_bounce_angle;
 	float m_total_health;
+	float m_bounce_knockback;
 };

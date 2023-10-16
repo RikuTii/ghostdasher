@@ -26,7 +26,7 @@ public:
 	void Process(float frameTime);
 	bool DoesIntersectWall(const sf::FloatRect&);
 	bool TryMovement(Entity* ent);
-	int GetIntersection(const sf::Vector2f&, Entity*ent = nullptr, bool first = false);
+	int GetIntersection(const sf::Vector2f&, const sf::Vector2f& ent = sf::Vector2f(0,0), bool first = false);
 	void AddUnwalkableSpace(const sf::FloatRect&);
 	void AddSpawnPoint(const sf::Vector2f&);
 	bool IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end);
@@ -35,7 +35,16 @@ public:
 	sf::Vector2f GetRandomSpawnPoint();
 	sf::Vector2f GetFurthestSpawnpoint(const sf::Vector2f&);
 
+	void SetBounds(const sf::Vector2f& bounds)
+	{
+		m_bounds = bounds;
+		m_shape->setSize(m_bounds);
+	}
+	void UpdateIntersectingEntities();
+
 	std::vector<Waypoint> GenerateWayPoints();
+
+	void UpdateUnwalkableSpaces();
 
 	void UpdateView(const sf::Vector2f& pos, const sf::Vector2f& size)
 	{
@@ -53,14 +62,38 @@ public:
 		return static_cast<int>(GetWorldBounds().x / m_waypoint_size);
 	}
 
+	void SetBossPosition(const sf::Vector2f& pos)
+	{
+		m_boss_position = pos;
+	}
+
+	const sf::Vector2f& GetBossPosition()
+	{
+		return m_boss_position;
+	}
+
+	void TriggerBossfight()
+	{
+		m_is_boss_fight = true;
+	}
+
+	bool IsBossFight()
+	{
+		return m_is_boss_fight;
+	}
+
 private:
 	std::unique_ptr<sf::RectangleShape> m_shape;
 	std::vector<sf::FloatRect> m_unwalkable_spaces;
+	std::vector<sf::FloatRect> m_dynamic_unwalkable_spaces;
 	std::vector<Waypoint> m_points;
 	std::vector<sf::Vector2f> m_spawnpoints;
+	std::vector<sf::FloatRect> m_intersecting_entity_positions;
+	sf::Vector2f m_boss_position;
 	sf::Vector2f m_view_position;
 	sf::Vector2f m_view_size;
 	sf::Vector2f m_position;
 	sf::Vector2f m_bounds;
 	float m_waypoint_size;
+	bool m_is_boss_fight;
 };

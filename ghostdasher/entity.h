@@ -11,6 +11,7 @@ public:
 	virtual void Process(float frameTime);
 	virtual void SetVelocity(const sf::Vector2f& vel);
 	virtual void SetGoalVelocity(const sf::Vector2f& vel);
+	virtual void Init();
 
 	sf::Vector2f GetPosition()
 	{
@@ -52,6 +53,12 @@ public:
 		return m_type;
 	}
 
+	EntityCategory GetCategory()
+	{
+		return m_category;
+	}
+
+
 	size_t GetEntityIndex()
 	{
 		return m_entity_index;
@@ -81,6 +88,7 @@ protected:
 	sf::Vector2f m_velocity_goal;
 	RenderState m_render_state;
 	EntityType m_type;
+	EntityCategory m_category;
 	size_t m_entity_index;
 	bool m_mark_deletion;
 private:

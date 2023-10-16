@@ -22,6 +22,12 @@ enum EntityType
 	BouncingBossEntity
 };
 
+enum EntityCategory
+{
+	CategoryGeneral,
+	CategoryBoss,
+	CategoryAlwaysActive
+};
 
 enum DamageType
 {

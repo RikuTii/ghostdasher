@@ -1,6 +1,18 @@
 #include "bouncingboss.h"
 #include "window.h"
+
 BouncingBoss::BouncingBoss()
+{
+	Init();
+}
+
+BouncingBoss::BouncingBoss(const sf::Vector2f& pos)
+{
+	Init();
+	m_position = pos;
+}
+
+void BouncingBoss::Init()
 {
 	m_shape = std::make_unique<sf::Sprite>();
 	m_texture_sprite_size = sf::IntRect(0, 0, 24, 24);
@@ -12,11 +24,13 @@ BouncingBoss::BouncingBoss()
 	m_movement_speed = 700.0f;
 	m_type = EntityType::BouncingBossEntity;
 
+	m_category = EntityCategory::CategoryBoss;
+
 	m_total_health = 1000;
 
 	m_movement_speed = 350.0f;
 
-	m_health = m_total_health;
+	m_health = static_cast<int>(m_total_health);
 
 	LoadTextures();
 	m_shape->setScale(8.0f, 8.0f);
@@ -29,23 +43,22 @@ BouncingBoss::BouncingBoss()
 
 	m_health_background->setFillColor(sf::Color::Black);
 	m_health_background->setSize(sf::Vector2f(600, 20));
-	m_health_background->setPosition(sf::Vector2f(window->getSize().x / 2 - m_health_background->getSize().x / 2, 20));
+	m_health_background->setPosition(sf::Vector2f(window->getDefaultView().getSize().x / 2 - m_health_background->getSize().x / 2, 20));
 	m_health_background->setOutlineColor(sf::Color::White);
 	m_health_background->setOutlineThickness(1.0f);
+
 	m_health_fill = std::make_unique<sf::RectangleShape>();
 	m_health_fill->setFillColor(sf::Color::Green);
 	m_health_fill->setSize(sf::Vector2f(600, 20));
-	m_health_fill->setPosition(sf::Vector2f(window->getSize().x / 2 - m_health_background->getSize().x / 2, 20));
+	m_health_fill->setPosition(sf::Vector2f(window->getDefaultView().getSize().x / 2 - m_health_background->getSize().x / 2, 20));
 
 
 	m_rotation_time = 0.0f;
 
 	do
 	{
-		m_bounce_angle = (std::rand() % 360) * 2 * 3.14f / 360;
+		m_bounce_angle = (std::rand() % 360) * 2 * M_PI / 360;
 	} while (std::abs(std::cos(m_bounce_angle)) < 0.7f);
-
-
 }
 void BouncingBoss::LoadTextures()
 {
@@ -92,13 +105,15 @@ void BouncingBoss::TakeDamage(const int amount, const sf::Vector2f& dir)
 
 	sf::Vector2f delta = (m_position - dir);
 
-	float angle = atan2f(dir.x - m_position.x, dir.y - m_position.y) * (180 / 3.14f);
+	float angle = atan2f(dir.x - m_position.x, dir.y - m_position.y) * (180 / M_PI);
 
 	float perc = (m_health / m_total_health);
 
 	m_health_fill->setSize(sf::Vector2f(m_health_background->getSize().x - (m_health_background->getSize().x * (1.0f - perc)), m_health_fill->getSize().y));
 
-	m_bounce_angle = -((angle + 90.0f) * (3.14f / 180.0f));
+	m_bounce_angle = -((angle + 90.0f) * (M_PI / 180.0f));
+
+	m_bounce_knockback = 35.0f;
 }
 
 
@@ -107,12 +122,16 @@ void BouncingBoss::Process(float frameTime)
 {
 	m_shape->setPosition(m_position);
 
-
 	World* world = entityManager->GetWorld();
 
 	float factor = m_movement_speed * frameTime;
-	m_position = sf::Vector2f(m_position.x + (std::cos(m_bounce_angle) * factor), m_position.y + std::sin(m_bounce_angle) * factor);
 
+	if (m_bounce_knockback > 0.0f)
+	{
+		factor *= m_bounce_knockback / 4.0f;
+	} 
+
+	m_position = sf::Vector2f(m_position.x + (std::cos(m_bounce_angle) * factor), m_position.y + std::sin(m_bounce_angle) * factor);
 
 	sf::Vector2f left_intersect = m_position + sf::Vector2f(50, 0);
 	sf::Vector2f right_intersect = m_position - sf::Vector2f(50, 0);
@@ -126,13 +145,13 @@ void BouncingBoss::Process(float frameTime)
 
 	if (intersection_left)
 	{
-		m_bounce_angle = 3.14f + m_bounce_angle + (std::rand() % 20) * 3.14f / 180;
+		m_bounce_angle = M_PI + m_bounce_angle + (std::rand() % 20) * M_PI / 180;
 		m_position = m_position - sf::Vector2f(10, 0);
 	}
 
 	if (intersection_right)
 	{
-		m_bounce_angle = 3.14f - m_bounce_angle + (std::rand() % 20) * 3.14f / 180;
+		m_bounce_angle = M_PI - m_bounce_angle + (std::rand() % 20) * M_PI / 180;
 		m_position = m_position + sf::Vector2f(10, 0);
 	}
 
@@ -148,6 +167,11 @@ void BouncingBoss::Process(float frameTime)
 	m_shape->setRotation(fmodf(m_rotation_time, 360.0f));
 
 	m_rotation_time += frameTime * 100.0f;
+
+	if (m_bounce_knockback > 0.0f)
+	{
+		m_bounce_knockback -= frameTime * 100.0f;
+	}
 	
 	m_last_position = m_position;
 }

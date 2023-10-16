@@ -3,6 +3,11 @@
 
 Entity::Entity()
 {
+	Init();
+}
+
+void Entity::Init()
+{
 	m_shape = std::make_unique<sf::RectangleShape>();
 	m_shape->setSize(sf::Vector2f(40, 40));
 	m_shape->setOrigin(sf::Vector2f(20, 20));
@@ -11,8 +16,9 @@ Entity::Entity()
 	m_shape->setFillColor(sf::Color::White);
 	m_render_state = RenderState::Draw;
 	m_type = EntityType::GeneralEntity;
-}
+	m_category = EntityCategory::CategoryGeneral;
 
+}
 
 
 void Entity::Process(float frameTime)

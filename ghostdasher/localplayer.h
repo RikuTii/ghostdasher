@@ -18,18 +18,14 @@ public:
 	void DoDash();
 	void TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type = MeleeDamage);
 	void PlayAnimation(float frameTime);
-
+	void DoAttack();
 
 	void Respawn()
 	{
 		m_health = 200;
 	}
 
-	void DoAttack()
-	{
-		m_attack_stage = 5.0f;
-	}
-
+	
 
 	bool IsAlive()
 	{
@@ -88,6 +84,7 @@ private:
 	sf::Vector2f m_last_velocity;
 	sf::Vector2f m_goal_position;
 	int m_health;
+	float m_last_attack_time;
 	int m_last_damage_tick;
 	int m_last_attack_tick;
 	float m_knockback_time;

@@ -14,12 +14,9 @@
 #include "scaredhostile.h"
 #include "bouncingboss.h"
 
-constexpr float TICK_INTERVAL = 0.0078125f;
 
 std::unique_ptr<Globals> globals;
 std::unique_ptr<sf::RenderWindow> window;
-
-
 
 std::mutex path_mutex;
 
@@ -33,7 +30,7 @@ void UpdateHostilePathfinding()
 		for (int i = 0; i < entityManager->GetHighestEntityIndex(); i++)
 		{
 			Entity* ent = entityManager->GetEntity(i);
-			if (ent && (ent->GetType() == EntityType::HostileEntity || ent->GetType() == EntityType::ScaredHostileEntity))
+			if (ent && (ent->GetType() == EntityType::HostileEntity || ent->GetType() == EntityType::ScaredHostileEntity) && entityManager->GetWorld())
 			{
 				Hostile* hostile = static_cast<Hostile*>(ent);
 				hostile->UpdatePath();
@@ -69,12 +66,24 @@ int main()
 	entityManager = std::make_unique<EntityManager>();
 
 	World* world = entityManager->CreateWorld();
+	pathFinder = std::make_unique<PathFinder>(world);
 
 	tmx::Map map;
-	map.load("../assets/map1.tmx");
+	map.load("../assets/boss_map.tmx");
 
 	MapLayer layerZero(map, 0);
 
+
+	MapLayer bossLayer(map, 2);
+	MapLayer bossCoverLayer(map, 3);
+
+
+	LocalPlayer* localplayer = entityManager->CreateLocalPlayer();
+	std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
+
+	world->SetBounds(sf::Vector2f(layerZero.getGlobalBounds().width, layerZero.getGlobalBounds().height));
+
+	sf::FloatRect door_trigger;
 	const auto& layers = map.getLayers();
 	//Parse objects from map file for spawning, collisions etc
 	for (const auto& layer : layers)
@@ -92,6 +101,23 @@ int main()
 				{
 					entityManager->AddEntity(std::make_unique<DoorButton>(sf::Vector2f(object.getPosition().x, object.getPosition().y)));
 				}
+				else if (object.getClass() == "local_spawn")
+				{
+					localplayer->SetPosition(sf::Vector2f(object.getPosition().x, object.getPosition().y));
+				}
+				else if (object.getClass() == "boss_spawn")
+				{
+					world->SetBossPosition(sf::Vector2f(object.getPosition().x, object.getPosition().y));
+				}
+				else if (object.getClass() == "boss_trigger")
+				{
+					door_trigger = sf::FloatRect(object.getAABB().left, object.getAABB().top, object.getAABB().width, object.getAABB().height);
+
+				}
+				else if (object.getClass() == "boss_door")
+				{
+					entityManager->AddEntity(std::make_unique<Door>(sf::Vector2f(object.getPosition().x, object.getPosition().y),  sf::Vector2f(object.getAABB().width, object.getAABB().height)));
+				}
 				else
 				{
 					tmx::FloatRect aabb = object.getAABB();
@@ -101,25 +127,20 @@ int main()
 		}
 	}
 
+	for (const auto& it : entityManager->GetEntitiesByType<Door*>())
+	{
+		it->SetTrigger(door_trigger);
+	}
 
-	LocalPlayer* localplayer = entityManager->CreateLocalPlayer();
-
-	std::unique_ptr<InputController> inputcontroller = std::make_unique<InputController>(localplayer);
-
-	pathFinder = std::make_unique<PathFinder>(world);
-
-	Hostile* newent = entityManager->AddEntity(std::make_unique<FiringHostile>());
-	entityManager->AddEntity(std::make_unique<ScaredHostile>());
+	entityManager->AddEntity(std::make_unique<FiringHostile>(world->GetRandomSpawnPoint()));
+	entityManager->AddEntity(std::make_unique<ScaredHostile>(world->GetRandomSpawnPoint()));
+	entityManager->AddEntity(std::make_unique<Hostile>(world->GetRandomSpawnPoint()));
 
 	Crate* test_crate = entityManager->AddEntity(std::make_unique<Crate>());
-	entityManager->AddEntity(std::make_unique<Door>(sf::Vector2f(80, 100)));
-
-	BouncingBoss* test_boss = entityManager->AddEntity(std::make_unique<BouncingBoss>());
-
 
 	sf::CircleShape heart;
 	heart.setOutlineColor(sf::Color::Cyan);
-	heart.setRadius(20.0f);
+	heart.setRadius(10.0f);
 	heart.setFillColor(sf::Color::Black);
 	heart.setOutlineThickness(2);
 
@@ -148,11 +169,7 @@ int main()
 	sf::View gameView = window->getDefaultView();
 	gameView.zoom(1.2f);
 
-	newent->SetPosition(world->GetRandomSpawnPoint());
-	newent->SetGoalPosition(newent->GetPosition());
-	localplayer->SetPosition(world->GetRandomSpawnPoint());
 	test_crate->SetPosition(world->GetRandomSpawnPoint());
-	test_boss->SetPosition(world->GetRandomSpawnPoint());
 
 	std::thread pathfinding_thread(UpdateHostilePathfinding);
 	bool paused = false;
@@ -214,18 +231,17 @@ int main()
 						int result = rand() % 3;
 						if (result == 0)
 						{
-							entityManager->AddEntity(std::make_unique<FiringHostile>())->SetPosition(world->GetRandomSpawnPoint());;
+							entityManager->AddEntity(std::make_unique<FiringHostile>())->SetPosition(world->GetRandomSpawnPoint());
 						}
 						else if (result == 1)
 						{
-							entityManager->AddEntity(std::make_unique<ScaredHostile>())->SetPosition(world->GetRandomSpawnPoint());;
+							entityManager->AddEntity(std::make_unique<ScaredHostile>())->SetPosition(world->GetRandomSpawnPoint());
 						}
 						else
 						{
-							entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());;
+							entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());
 						}
 					}
-					entityManager->AddEntity(std::make_unique<Door>(sf::Vector2f(80, 100)));
 					for (const auto& layer : layers)
 					{
 						if (layer->getType() == tmx::Layer::Type::Object)
@@ -258,11 +274,11 @@ int main()
 		gameView.setCenter(localplayer->GetPosition());
 
 		world->UpdateView(gameView.getCenter(), gameView.getSize());
+		world->UpdateUnwalkableSpaces();
 
 		if (!paused)
 		{
 			//Process all entity logic. Position, movement etc
-
 			entityManager->ProcessEntityLogic(elapsed.asSeconds());
 			if (localplayer->IsAlive())
 			{
@@ -292,7 +308,7 @@ int main()
 
 				float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
-				if (dist < 10.0f)
+				if (dist < 30.0f)
 				{
 					localplayer->TakeDamage(50, hostile->GetPosition());
 				}
@@ -316,8 +332,8 @@ int main()
 
 			sf::FloatRect bounds = it->GetBounds();
 
-			bounds.left += 150.0f;
-			bounds.top += 150.0f;
+		//	bounds.left -= 50.0f;
+		//	bounds.top -= 50.0f;
 			bounds.width -= 150.0f;
 			bounds.height -= 150.0f;
 
@@ -339,7 +355,7 @@ int main()
 		}
 
 		//Button entities to open door to leave the map
-		int pressed = 0;
+		bool has_pressed = true;
 		for (const auto& it : entityManager->GetEntitiesByType<DoorButton*>())
 		{
 			if (localplayer->GetBounds().intersects(it->GetBounds()))
@@ -347,13 +363,13 @@ int main()
 				it->SetPressed();
 			}
 
-			if (it->IsPressed())
+			if (!it->IsPressed())
 			{
-				pressed++;
+				has_pressed = false;
 			}
 		}
 
-		if (pressed > 2)
+		if (has_pressed)
 		{
 			for (const auto& it : entityManager->GetEntitiesByType<Door*>())
 			{
@@ -365,7 +381,7 @@ int main()
 		//Calculate average frames per second
 		m_frameSmaples.push_back(elapsed.asSeconds());
 
-		if (m_frameSmaples.size() > 10)
+		if (m_frameSmaples.size() > 50)
 		{
 			m_frameSmaples.pop_front();
 		}
@@ -393,6 +409,15 @@ int main()
 		//layerZero.setOpacity(50, true);
 		window->draw(layerZero);
 
+		if (world->IsBossFight())
+		{
+			window->draw(bossLayer);
+		}
+		else
+		{
+			window->draw(bossCoverLayer);
+		}
+
 		//Render each entiy with their specified render function
 		entityManager->RenderEntities(*window);
 
@@ -408,24 +433,20 @@ int main()
 		{
 			window->draw(heart);
 
-			heart.setPosition(sf::Vector2f(i + 5, 10));
+			heart.setPosition(sf::Vector2f(i / (i > 0 ? 2 : 1) + 5, 10));
 		}
 
-		for (const auto& it : entityManager->GetEntitiesByType<BouncingBoss*>())
+		if (world->IsBossFight())
 		{
-			it->RenderHud(*window);
+			for (const auto& it : entityManager->GetEntitiesByType<BouncingBoss*>())
+			{
+				it->RenderHud(*window);
+			}
 		}
-
 
 		window->display();
 
 		entityManager->DeleteMarkedEntities();
-
-
-		if (localplayer->GetPosition().x < 50 && localplayer->GetPosition().y < 200)
-		{
-			entityManager->ResetAll();
-		}
 
 	}
 

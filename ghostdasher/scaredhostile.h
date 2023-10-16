@@ -6,6 +6,9 @@ class ScaredHostile : public Hostile
 {
 public:
 	ScaredHostile();
+	ScaredHostile(const sf::Vector2f&);
+
+	void Init();
 	void LoadTextures();
 	void Process(float frameTime);
 	void Render(sf::RenderWindow& renderWindow);

@@ -11,6 +11,9 @@ Crate::Crate()
 	m_shape->setFillColor(sf::Color::Yellow);
 	m_render_state = RenderState::Draw;
 	m_type = EntityType::CrateEntity;
+
+	m_category = EntityCategory::CategoryGeneral;
+
 }
 
 void Crate::Process(float frameTime)

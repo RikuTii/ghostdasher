@@ -1,7 +1,7 @@
 #include "pathfinder.h"
 
 std::unique_ptr<PathFinder> pathFinder;
-std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity* entity, const sf::Vector2f& start, const sf::Vector2f& end)
+std::vector<sf::Vector2f> PathFinder::GenerateBestPath(const sf::Vector2f& entity, const sf::Vector2f& start, const sf::Vector2f& end)
 {
 	std::vector<sf::Vector2f> path_pos;
 	std::vector<sf::Vector2f> path_pos1;
@@ -10,7 +10,9 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity* entity, const sf:
 	std::vector<sf::Vector2f> path_neg1;
 
 
-	if (!m_world || !entity)
+	path_pos.clear();
+
+	if (!m_world)
 		return path_pos;
 
 	m_tracking_entity = entity;
@@ -59,7 +61,7 @@ std::vector<sf::Vector2f> PathFinder::GenerateBestPath(Entity* entity, const sf:
 
 	return path_pos;
 }
-std::vector<sf::Vector2f> PathFinder::GenerateBestPathAStar(Entity* entity, const sf::Vector2f& start_pos, const sf::Vector2f& end_pos)
+std::vector<sf::Vector2f> PathFinder::GenerateBestPathAStar(const sf::Vector2f& start_pos, const sf::Vector2f& end_pos)
 {
 	std::vector<sf::Vector2f> path_pos;
 

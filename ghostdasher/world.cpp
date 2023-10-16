@@ -29,7 +29,7 @@ bool World::IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end)
 	sf::RectangleShape traceStartBottom;
 	sf::Vector2f dist = (start - end);
 	float dist_len = std::sqrt(dist.x * dist.x + dist.y * dist.y);
-	float angle = atan2f(end.x - start.x, end.y - start.y) * 180 / 3.14f;
+	float angle = atan2f(end.x - start.x, end.y - start.y) * 180 / M_PI;
 	traceStart.setPosition(start);
 	traceStart.setSize(sf::Vector2f(1, dist_len));
 	traceStart.setRotation(-angle);
@@ -124,21 +124,35 @@ std::vector<Waypoint> World::GenerateWayPoints()
 	
 }
 
-std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
+void World::UpdateUnwalkableSpaces()
 {
+	m_dynamic_unwalkable_spaces.clear();
 	//Add extra positions which can be destroyed later. Walls, crates etc
 	std::vector<sf::FloatRect> entity_pos;
 	for (auto& it : entityManager->GetEntitiesByType<Crate*>())
 	{
-		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
+		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, it->GetBounds().width, it->GetBounds().height));
 	}
 	for (auto& it : entityManager->GetEntitiesByType<Door*>())
 	{
-		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
+		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, it->GetBounds().width, it->GetBounds().height));
 	}
-	//Default positions. Mostly walls
+	for (auto& it : entity_pos)
+	{
+		m_dynamic_unwalkable_spaces.push_back(it);
+	}
+}
+
+std::vector<sf::FloatRect> World::GetUnwalkableSpaces()
+{
 	std::vector<sf::FloatRect> positions = m_unwalkable_spaces;
-	positions.insert(positions.end(), entity_pos.begin(), entity_pos.end());
+	if (m_dynamic_unwalkable_spaces.size())
+	{
+		for (auto& it : m_dynamic_unwalkable_spaces)
+		{
+			positions.push_back(it);
+		}
+	}
 
 	return positions;
 }
@@ -156,6 +170,8 @@ bool World::TryMovement(Entity* ent)
 
 	const float scaleError = 30.0f;
 	bool can_move = true;
+
+
 	for (auto& it : GetUnwalkableSpaces())
 	{
 
@@ -182,30 +198,28 @@ bool World::TryMovement(Entity* ent)
 
 	return can_move;
 }
+void World::UpdateIntersectingEntities()
+{
+	m_intersecting_entity_positions.clear();
+	for (auto& it : entityManager->GetEntitiesByType<Hostile*>())
+	{
+		m_intersecting_entity_positions.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
+	}
 
+}
 
-int World::GetIntersection(const sf::Vector2f& position, Entity* ent, bool first)
+int World::GetIntersection(const sf::Vector2f& position, const sf::Vector2f& ent, bool first)
 {
 	const float velModifierBounce = 5;
 
 	const float scaleError = 50.0f;
 	int intersection = 0;
 
-	std::vector<sf::FloatRect> entity_pos;
-	for (auto& it : entityManager->GetEntitiesByType<Hostile*>())
+	for (auto& it : GetUnwalkableSpaces())
 	{
-		if (it == ent)
+
+		if (it.left == ent.x && it.top && ent.x)
 			continue;
-
-		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
-	}
-
-
-	std::vector<sf::FloatRect> positions = GetUnwalkableSpaces();
-	positions.insert(positions.end(), entity_pos.begin(), entity_pos.end());
-
-	for (auto& it : positions)
-	{
 
 		float x = it.left - 20;
 		float y = it.top - 20;
@@ -279,6 +293,9 @@ void World::AddSpawnPoint(const sf::Vector2f& point)
 
 sf::Vector2f World::GetRandomSpawnPoint()
 {
+	if (m_spawnpoints.size() == 0)
+		return sf::Vector2f();
+
 	int index = std::rand() % m_spawnpoints.size();
 
 	if (index >= m_spawnpoints.size())

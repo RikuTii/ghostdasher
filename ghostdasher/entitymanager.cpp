@@ -65,7 +65,17 @@ void EntityManager::RenderEntities(sf::RenderWindow& window)
 {
 	for (auto const& it : m_entities)
 	{
-		it->Render(window);
+		if (m_world->IsBossFight())
+		{
+			if (it->GetCategory() == EntityCategory::CategoryBoss || it->GetCategory() == EntityCategory::CategoryAlwaysActive)
+			{
+				it->Render(window);
+			}
+		}
+		else
+		{
+			it->Render(window);
+		}
 	}
 }
 
@@ -73,6 +83,19 @@ void EntityManager::ProcessEntityLogic(float frameTime)
 {
 	for (auto const & it: m_entities)
 	{
-		it->Process(frameTime);
+		if (it)
+		{
+			if (m_world->IsBossFight())
+			{
+				if (it->GetCategory() == EntityCategory::CategoryBoss || it->GetCategory() == EntityCategory::CategoryAlwaysActive)
+				{
+					it->Process(frameTime);
+				}
+			}
+			else
+			{
+				it->Process(frameTime);
+			}
+		}
 	}
 }

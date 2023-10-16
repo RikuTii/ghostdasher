@@ -1,7 +1,7 @@
 #include "Hostile.h"
 
 
-Hostile::Hostile()
+void Hostile::Init()
 {
 	m_shape = std::make_unique<sf::Sprite>();
 	//m_shape->setSize(sf::Vector2f(40, 40));
@@ -14,6 +14,8 @@ Hostile::Hostile()
 	m_goal_position = sf::Vector2f(0, 0);
 	m_shape->setPosition(m_position);
 	m_render_state = RenderState::Draw;
+	m_category = EntityCategory::CategoryGeneral;
+
 	m_movement_speed = 700.0f;
 	m_type = EntityType::HostileEntity;
 	m_health = 200;
@@ -28,8 +30,19 @@ Hostile::Hostile()
 	m_spotted_text->setCharacterSize(40);
 	m_spotted_text->setFont(resourceManager->GetPrimaryFont());
 	m_spotted_text->setString("!");
-
 }
+
+Hostile::Hostile()
+{
+	Init();
+}
+
+Hostile::Hostile(const sf::Vector2f& pos)
+{
+	Init();
+	m_position = pos;
+}
+
 void Hostile::LoadTextures()
 {
 
@@ -63,9 +76,9 @@ void Hostile::PlayAnimation(float frameTime)
 
 void Hostile::UpdatePath()
 {
-	if (m_path_finding)
+	if (m_path_finding && this)
 	{
-		m_path = pathFinder->GenerateBestPath(this, m_position, m_target_position);
+		m_path = pathFinder->GenerateBestPath(m_position, m_position, m_target_position);
 		m_current_path_index = 0;
 	}
 }
@@ -87,13 +100,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		if (dir == 0)
 		{
 			m_goal_position = m_position + sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position, this);
+			int intersection = world->GetIntersection(m_goal_position, m_position);
 			if (intersection & IntersectionDirection::InteresecRight)
 			{
 				while (true)
 				{
 					m_goal_position.x -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position, this);
+					intersection = world->GetIntersection(m_goal_position, m_position);
 					if (m_goal_position.x < m_position.x || !(intersection & IntersectionDirection::InteresecRight))
 						break;
 				}
@@ -103,13 +116,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 1)
 		{
 			m_goal_position = m_position - sf::Vector2f(moveDistance, 0);
-			int intersection = world->GetIntersection(m_goal_position, this);
+			int intersection = world->GetIntersection(m_goal_position, m_position);
 			if (intersection & IntersectionDirection::InteresecLeft)
 			{
 				while (true)
 				{
 					m_goal_position.x += 5.0f;
-					intersection = world->GetIntersection(m_goal_position, this);
+					intersection = world->GetIntersection(m_goal_position, m_position);
 					if (m_goal_position.x > m_position.x || !(intersection & IntersectionDirection::InteresecLeft))
 						break;
 				}
@@ -118,13 +131,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 2)
 		{
 			m_goal_position = m_position + sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position, this);
+			int intersection = world->GetIntersection(m_goal_position, m_position);
 			if (intersection & IntersectionDirection::InteresecDown)
 			{
 				while (true)
 				{
 					m_goal_position.y -= 5.0f;
-					intersection = world->GetIntersection(m_goal_position, this);
+					intersection = world->GetIntersection(m_goal_position, m_position);
 					if (m_goal_position.y < m_position.y || !(intersection & IntersectionDirection::InteresecDown))
 						break;
 				}
@@ -133,13 +146,13 @@ void Hostile::DoRandomMovement(float frameTime)
 		else if (dir == 3)
 		{
 			m_goal_position = m_position - sf::Vector2f(0, moveDistance);
-			int intersection = world->GetIntersection(m_goal_position, this);
+			int intersection = world->GetIntersection(m_goal_position, m_position);
 			if (intersection & IntersectionDirection::InteresecUp)
 			{
 				while (true)
 				{
 					m_goal_position.y += 5.0f;
-					intersection = world->GetIntersection(m_goal_position, this);
+					intersection = world->GetIntersection(m_goal_position, m_position);
 					if (m_goal_position.y > m_position.y || !(intersection & IntersectionDirection::InteresecUp))
 						break;
 				}
@@ -461,7 +474,7 @@ void Hostile::Process(float frameTime)
 
 	if (m_spotted_time > 0.0f)
 	{
-		m_spotted_text->setPosition(sf::Vector2f(GetPosition().x, GetPosition().y - 80));
+		m_spotted_text->setPosition(sf::Vector2f(GetPosition().x - (m_spotted_text->getGlobalBounds().width), GetPosition().y - 80));
 	}
 
 	m_spotted_time -= frameTime * 10.0f;

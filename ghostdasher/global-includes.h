@@ -13,3 +13,5 @@
 #include <queue>
 
 class ResourceManager;
+constexpr float M_PI = 3.14159f;
+constexpr float TICK_INTERVAL = 0.0078125f;

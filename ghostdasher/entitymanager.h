@@ -54,7 +54,12 @@ public:
 
 	World* GetWorld()
 	{
-		return m_world.get();
+		if (m_world)
+		{
+			return m_world.get();
+		}
+
+		return nullptr;
 	}
 
 	LocalPlayer* GetLocalPlayer()
@@ -64,7 +69,7 @@ public:
 
 	size_t GetHighestEntityIndex()
 	{
-		return m_highest_entity_index;
+		return m_entities.size();
 	}
 private:
 	std::vector<std::unique_ptr<Entity>> m_entities;
