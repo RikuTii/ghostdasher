@@ -474,7 +474,7 @@ void Hostile::Process(float frameTime)
 
 	if (m_spotted_time > 0.0f)
 	{
-		m_spotted_text->setPosition(sf::Vector2f(GetPosition().x - (m_spotted_text->getGlobalBounds().width), GetPosition().y - 80));
+		m_spotted_text->setPosition(sf::Vector2f(m_shape->getPosition().x - m_shape->getLocalBounds().width / 2 - (m_spotted_text->getGlobalBounds().width), GetPosition().y - 80));
 	}
 
 	m_spotted_time -= frameTime * 10.0f;

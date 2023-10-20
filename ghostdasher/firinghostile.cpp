@@ -116,20 +116,7 @@ void FiringHostile::Process(float frameTime)
 		{
 			if (m_fire_time <= 0.0f)
 			{
-				std::unique_ptr<Projectile> projectile = std::make_unique<Projectile>();
-				projectile->m_projectile_texture = std::make_unique<sf::RectangleShape>();
-				projectile->m_projectile_texture->setFillColor(sf::Color::Magenta);
-				projectile->m_projectile_texture->setSize(sf::Vector2f(5, 30));
-				projectile->m_lifetime = 400.0f;
-				projectile->m_life = projectile->m_lifetime;
-				projectile->m_current_position = m_position;
-				projectile->m_should_update = true;
-				projectile->m_should_collide = true;
-				sf::Vector2f target_end = m_target_position  + (m_target_position - m_position) * 10.0f;
-				projectile->m_target_position = target_end;
-
-				m_projectiles.push_back(std::move(projectile));
-
+				entityManager->AddEntity<Projectile>(std::make_unique<Projectile>(m_position, m_target_position));
 				m_fire_time = 200.0f;
 			}
 
@@ -182,54 +169,6 @@ void FiringHostile::Process(float frameTime)
 		m_min_animation_frame = 0;
 	}
 
-	World* world = entityManager->GetWorld();
-	LocalPlayer* localplayer = entityManager->GetLocalPlayer();
-
-	for (auto const& it : m_projectiles)
-	{
-
-		it->m_life -= frameTime * 100.0f;
-
-		if (it->m_should_update)
-		{
-			float angle = atan2f(it->m_target_position.x - it->m_current_position.x, it->m_target_position.y - it->m_current_position.y) * 180 / M_PI;
-			it->m_projectile_texture->setRotation(-angle);
-
-			sf::Vector2f delta = (it->m_target_position - it->m_current_position);
-
-			const float veclen = std::sqrt(delta.x * delta.x + delta.y * delta.y);
-			if (veclen > 0)
-			{
-				sf::Vector2f end_position = it->m_current_position + sf::Vector2f(delta.x, delta.y) / (veclen * ((it->m_life / it->m_lifetime) / 4));
-				it->m_projectile_texture->setPosition(end_position);
-				it->m_current_position = end_position;
-
-				//this will make projectiles hoam towards the player
-				it->m_target_position += (localplayer->GetPosition() - it->m_current_position) * 10.0f;
-
-			}
-
-		}
-
-		if (it->m_should_collide && it->m_should_update)
-		{
-			sf::FloatRect projectileBounds(it->m_current_position.x, it->m_current_position.y, 10, 10);
-			if (world->DoesIntersectWall(projectileBounds))
-			{
-				it->m_should_update = false;
-			}
-
-			if (projectileBounds.intersects(localplayer->GetBounds()))
-			{
-				localplayer->TakeDamage(50, m_position, ProjectileDamage);
-				it->m_life = 0.0f;
-			}
-		}
-
-	}
-
-	std::erase_if(m_projectiles,
-		[=](auto const& ptr) { return ptr && ptr->m_life <= 0.0f; });
 
 	if (m_spotted_time > 0.0f)
 	{
@@ -267,10 +206,6 @@ void FiringHostile::Render(sf::RenderWindow& renderWindow)
 {
 	if (m_render_state == RenderState::Draw)
 	{
-		for (auto const& it : m_projectiles)
-		{
-			renderWindow.draw(*it->m_projectile_texture.get());
-		}
 		if (m_spotted_time > 0.0f)
 		{
 			renderWindow.draw(*m_spotted_text.get());

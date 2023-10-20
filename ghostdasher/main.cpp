@@ -88,7 +88,7 @@ int main()
 	//Parse objects from map file for spawning, collisions etc
 	for (const auto& layer : layers)
 	{
-		if (layer->getType() == tmx::Layer::Type::Object)
+		if (layer->getType() == tmx::Layer::Type::Object && layer->getName() == "objects")
 		{
 			const auto& objects = layer->getLayerAs<tmx::ObjectGroup>().getObjects();
 			for (const auto& object : objects)
@@ -125,6 +125,14 @@ int main()
 				}
 			}
 		}
+		else if (layer->getType() == tmx::Layer::Type::Object && layer->getName() == "potential_objects")
+		{
+			const auto& objects = layer->getLayerAs<tmx::ObjectGroup>().getObjects();
+			for (const auto& object : objects)
+			{
+				world->LoadPotentialObject(object);
+			}
+		}
 	}
 
 	for (const auto& it : entityManager->GetEntitiesByType<Door*>())
@@ -134,15 +142,10 @@ int main()
 
 	entityManager->AddEntity(std::make_unique<FiringHostile>(world->GetRandomSpawnPoint()));
 	entityManager->AddEntity(std::make_unique<ScaredHostile>(world->GetRandomSpawnPoint()));
-	entityManager->AddEntity(std::make_unique<Hostile>(world->GetRandomSpawnPoint()));
+	entityManager->AddEntity(std::make_unique<Hostile>())->SetPosition(world->GetRandomSpawnPoint());
 
-	Crate* test_crate = entityManager->AddEntity(std::make_unique<Crate>());
 
-	sf::CircleShape heart;
-	heart.setOutlineColor(sf::Color::Cyan);
-	heart.setRadius(10.0f);
-	heart.setFillColor(sf::Color::Black);
-	heart.setOutlineThickness(2);
+
 
 	sf::Text fps;
 	fps.setFillColor(sf::Color::White);
@@ -168,8 +171,6 @@ int main()
 
 	sf::View gameView = window->getDefaultView();
 	gameView.zoom(1.2f);
-
-	test_crate->SetPosition(world->GetRandomSpawnPoint());
 
 	std::thread pathfinding_thread(UpdateHostilePathfinding);
 	bool paused = false;
@@ -268,6 +269,7 @@ int main()
 		globals->interval_per_tick = TICK_INTERVAL;
 		globals->tick_count = static_cast<int>(globals->curtime / globals->interval_per_tick);
 
+		entityManager->DeleteMarkedEntities();
 
 
 		window->setView(gameView);
@@ -315,11 +317,21 @@ int main()
 			}
 		}
 
+
 		for (const auto& it : entityManager->GetEntitiesByType<ScaredHostile*>())
 		{
 			if (localplayer->CheckSwordCollision(it->GetBounds()))
 			{
 				it->TakeDamage(50, localplayer->GetFacing());
+			}
+
+			sf::Vector2f delta = (localplayer->GetPosition() - it->GetPosition());
+
+			float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+
+			if (dist < 30.0f)
+			{
+				localplayer->TakeDamage(50, it->GetPosition());
 			}
 		}
 
@@ -330,15 +342,11 @@ int main()
 				it->TakeDamage(50, localplayer->GetPosition());
 			}
 
-			sf::FloatRect bounds = it->GetBounds();
+			sf::Vector2f delta = (localplayer->GetPosition() - it->GetPosition());
 
-		//	bounds.left -= 50.0f;
-		//	bounds.top -= 50.0f;
-			bounds.width -= 150.0f;
-			bounds.height -= 150.0f;
+			float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
-
-			if (bounds.intersects(localplayer->GetBounds()))
+			if (dist < 100.0f)
 			{
 				localplayer->TakeDamage(50.0f, it->GetPosition());
 				it->SetBounceAngle(-it->GetBounceAngle());
@@ -350,7 +358,15 @@ int main()
 		{
 			if (localplayer->CheckSwordCollision(it->GetBounds()))
 			{
-				it->Delete();
+				it->Break();
+			}
+
+			if (it->IsBroken() && localplayer->GetBounds().intersects(it->GetBounds()))
+			{
+				if (localplayer->Heal(50))
+				{
+					it->Delete();
+				}
 			}
 		}
 
@@ -408,6 +424,7 @@ int main()
 
 		//layerZero.setOpacity(50, true);
 		window->draw(layerZero);
+		world->RenderExtra(*window);
 
 		if (world->IsBossFight())
 		{
@@ -428,13 +445,8 @@ int main()
 			window->draw(pausedText);
 		}
 
-		//Draw current player health
-		for (int i = 0; i < localplayer->GetHealth(); i += 50)
-		{
-			window->draw(heart);
-
-			heart.setPosition(sf::Vector2f(i / (i > 0 ? 2 : 1) + 5, 10));
-		}
+		
+		localplayer->RenderHud(*window);
 
 		if (world->IsBossFight())
 		{
@@ -446,7 +458,6 @@ int main()
 
 		window->display();
 
-		entityManager->DeleteMarkedEntities();
 
 	}
 

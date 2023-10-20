@@ -25,7 +25,7 @@ LocalPlayer* EntityManager::CreateLocalPlayer()
 void EntityManager::RemoveEntity(size_t index)
 {
 
-	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const &obj) { return obj && obj->GetEntityIndex() == index; });
+	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const& obj) { return obj && obj->GetEntityIndex() == index; });
 	if (it != m_entities.end())
 	{
 		m_entities.erase(it);
@@ -45,7 +45,7 @@ Entity* EntityManager::GetEntity(size_t index)
 {
 
 	auto it = find_if(m_entities.begin(), m_entities.end(), [&](auto const& obj) { return obj && obj->GetEntityIndex() == index; });
-	if (it != m_entities.end()) 
+	if (it != m_entities.end())
 	{
 		return it->get();
 	}
@@ -65,6 +65,9 @@ void EntityManager::RenderEntities(sf::RenderWindow& window)
 {
 	for (auto const& it : m_entities)
 	{
+		if (!it || !it.get() || it->GetMarkedForDeletion())
+			continue;
+
 		if (m_world->IsBossFight())
 		{
 			if (it->GetCategory() == EntityCategory::CategoryBoss || it->GetCategory() == EntityCategory::CategoryAlwaysActive)
@@ -81,21 +84,23 @@ void EntityManager::RenderEntities(sf::RenderWindow& window)
 
 void EntityManager::ProcessEntityLogic(float frameTime)
 {
-	for (auto const & it: m_entities)
+	for (auto const& it : m_entities)
 	{
-		if (it)
+		if (!it || !it.get() || it->GetMarkedForDeletion())
+			continue;
+
+
+		if (m_world->IsBossFight())
 		{
-			if (m_world->IsBossFight())
-			{
-				if (it->GetCategory() == EntityCategory::CategoryBoss || it->GetCategory() == EntityCategory::CategoryAlwaysActive)
-				{
-					it->Process(frameTime);
-				}
-			}
-			else
+			if (it->GetCategory() == EntityCategory::CategoryBoss || it->GetCategory() == EntityCategory::CategoryAlwaysActive)
 			{
 				it->Process(frameTime);
 			}
 		}
+		else
+		{
+			it->Process(frameTime);
+		}
+
 	}
 }

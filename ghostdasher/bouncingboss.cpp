@@ -15,7 +15,7 @@ BouncingBoss::BouncingBoss(const sf::Vector2f& pos)
 void BouncingBoss::Init()
 {
 	m_shape = std::make_unique<sf::Sprite>();
-	m_texture_sprite_size = sf::IntRect(0, 0, 24, 24);
+	m_texture_sprite_size = sf::IntRect(0, 0, 64, 64);
 	m_shape->setOrigin(sf::Vector2f(float(m_texture_sprite_size.width / 2), float(m_texture_sprite_size.height / 2)));
 	m_position = sf::Vector2f((float)(rand() % 500), (float)(rand() % 500));
 	m_goal_position = sf::Vector2f(0, 0);
@@ -33,11 +33,11 @@ void BouncingBoss::Init()
 	m_health = static_cast<int>(m_total_health);
 
 	LoadTextures();
-	m_shape->setScale(8.0f, 8.0f);
+	m_shape->setScale(5.0f, 5.0f);
 
 	m_shape->setColor(sf::Color::Yellow);
 
-	m_total_animation_frames = 4;
+	m_total_animation_frames = 6;
 
 	m_health_background = std::make_unique<sf::RectangleShape>();
 
@@ -53,6 +53,8 @@ void BouncingBoss::Init()
 	m_health_fill->setPosition(sf::Vector2f(window->getDefaultView().getSize().x / 2 - m_health_background->getSize().x / 2, 20));
 
 
+	m_start_time = 55.0f;
+
 	m_rotation_time = 0.0f;
 
 	do
@@ -63,7 +65,7 @@ void BouncingBoss::Init()
 void BouncingBoss::LoadTextures()
 {
 
-	std::optional<sf::Texture*> run_texture = resourceManager->GetTexture("HostileIdle");
+	std::optional<sf::Texture*> run_texture = resourceManager->GetTexture("Boss");
 	if (run_texture.has_value())
 	{
 		m_texture = run_texture.value();
@@ -77,7 +79,7 @@ void BouncingBoss::LoadTextures()
 
 void BouncingBoss::PlayAnimation(float frameTime)
 {
-	/**if (m_animation_time < 0.0f)
+	if (m_animation_time < 0.0f)
 	{
 		m_animation_frame++;
 
@@ -90,7 +92,7 @@ void BouncingBoss::PlayAnimation(float frameTime)
 		m_animation_time = 8.0f;
 	}
 
-	m_animation_time -= frameTime * 100.0f;*/
+	m_animation_time -= frameTime * 100.0f;
 }
 
 void BouncingBoss::TakeDamage(const int amount, const sf::Vector2f& dir)
@@ -129,7 +131,7 @@ void BouncingBoss::Process(float frameTime)
 	if (m_bounce_knockback > 0.0f)
 	{
 		factor *= m_bounce_knockback / 4.0f;
-	} 
+	}
 
 	m_position = sf::Vector2f(m_position.x + (std::cos(m_bounce_angle) * factor), m_position.y + std::sin(m_bounce_angle) * factor);
 
@@ -172,8 +174,11 @@ void BouncingBoss::Process(float frameTime)
 	{
 		m_bounce_knockback -= frameTime * 100.0f;
 	}
-	
+
 	m_last_position = m_position;
+
+
+	PlayAnimation(frameTime);
 }
 
 

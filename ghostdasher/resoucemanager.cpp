@@ -41,4 +41,39 @@ void ResourceManager::Loadresources()
             m_textures.insert({ "HostileIdle", std::move(texture) });
         }
     }
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/misc/Chest_closed.png"))
+        {
+            m_textures.insert({ "Chest", std::move(texture) });
+        }
+    }
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/misc/PotionL_Red.png"))
+        {
+            m_textures.insert({ "Potion", std::move(texture) });
+        }
+    }
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/enemy/Arrow.png"))
+        {
+            m_textures.insert({ "Projectile", std::move(texture) });
+        }
+    }
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/misc/Fire.png"))
+        {
+            m_textures.insert({ "ProjectileExplosion", std::move(texture) });
+        }
+    }
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/enemy/Boss.png"))
+        {
+            m_textures.insert({ "Boss", std::move(texture) });
+        }
+    }
 }

@@ -9,10 +9,11 @@ public:
 	LocalPlayer();
 	~LocalPlayer() {};
 	void Render(sf::RenderWindow& renderWindow);
+	void RenderHud(sf::RenderWindow& renderWindow);
 	void SetPosition(const sf::Vector2f& pos);
 	void Process(float frameTime);
 	void ProcessMovement(float frameTime);
-	void DoKnockbackMove();
+	void DoKnockbackMove(float frameTime);
 	void LoadTextures();
 	bool CheckSwordCollision(const sf::FloatRect& target);
 	void DoDash();
@@ -25,8 +26,15 @@ public:
 		m_health = 200;
 	}
 
-	
+	bool Heal(int amount)
+	{
+		bool can_pick_up = m_health < m_max_health;
+		m_health += amount;
+		m_health = std::min(m_health, m_max_health);
 
+		return can_pick_up;
+	}
+	
 	bool IsAlive()
 	{
 		return m_health > 0;
@@ -57,8 +65,6 @@ public:
 		return m_movement_speed;
 	}
 
-
-
 	enum Animation
 	{
 		Idle,
@@ -67,6 +73,9 @@ public:
 
 private:
 	std::unique_ptr<sf::Sprite> m_shape;
+	std::unique_ptr<sf::CircleShape> m_heart_shape;
+	std::unique_ptr<sf::CircleShape> m_damage_indicator;
+
 	sf::Texture* m_texture;
 	sf::Texture* m_idle_texture;
 	std::unique_ptr<sf::RectangleShape> m_sword;
@@ -84,7 +93,9 @@ private:
 	sf::Vector2f m_last_velocity;
 	sf::Vector2f m_goal_position;
 	int m_health;
+	int m_max_health;
 	float m_last_attack_time;
+	float m_damage_time;
 	int m_last_damage_tick;
 	int m_last_attack_tick;
 	float m_knockback_time;

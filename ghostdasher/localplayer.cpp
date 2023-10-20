@@ -1,6 +1,6 @@
 #include "localplayer.h"
 #include "entitymanager.h"
-
+#include "window.h"
 
 LocalPlayer::LocalPlayer()
 {
@@ -17,6 +17,22 @@ LocalPlayer::LocalPlayer()
 	m_sword->setOutlineColor(sf::Color::Magenta);
 	m_sword->setOutlineThickness(2);
 
+
+	m_heart_shape = std::make_unique<sf::CircleShape>();;
+	m_heart_shape->setOutlineColor(sf::Color::Cyan);
+	m_heart_shape->setRadius(10.0f);
+	m_heart_shape->setFillColor(sf::Color::Black);
+	m_heart_shape->setOutlineThickness(2);
+
+
+	m_damage_indicator = std::make_unique<sf::CircleShape>();
+	m_damage_indicator->setOutlineColor(sf::Color::Red);
+	m_damage_indicator->setRadius(50.0f);
+	m_damage_indicator->setOutlineThickness(2);
+	m_damage_indicator->setFillColor(sf::Color::Transparent);
+	m_damage_indicator->setPosition(sf::Vector2f(window->getDefaultView().getSize().x / 2 - m_damage_indicator->getLocalBounds().width / 2, 
+		window->getDefaultView().getSize().y / 2 - m_damage_indicator->getLocalBounds().height / 2));
+
 	m_shape->setPosition(m_position);
 
 	m_sprite_scale = sf::Vector2f(1.2f, 1.2f);
@@ -25,13 +41,17 @@ LocalPlayer::LocalPlayer()
 
 
 	m_render_state = RenderState::Draw;
+	m_type = EntityType::LocalplayerEntity;
 	m_movement_speed = 500.0f;
 	m_attack_stage = 0.0f;
 
 	m_total_animation_frames = 3;
 	m_animation_frame = 0;
 
-	m_health = 400;
+
+	m_max_health = 400;
+
+	m_health = m_max_health;
 
 
 	LoadTextures();
@@ -126,29 +146,29 @@ void LocalPlayer::DoDash()
 }
 
 
-void LocalPlayer::DoKnockbackMove()
+void LocalPlayer::DoKnockbackMove(float frameTime)
 {
-	const float knockbackScale = 5.0f;
-	if (m_position.x < m_goal_position.x)
+	sf::Vector2f delta = (m_position - m_goal_position);
+	const float veclen = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+	if (veclen > 0.9f && veclen < 100.0f)
 	{
-		m_position.x += knockbackScale;
+		sf::Vector2f end_position = m_position + (sf::Vector2f(delta.x, delta.y) / (veclen * ((m_knockback_time / 30.0f))) * frameTime * 250.0f);
+
+		World* world = entityManager->GetWorld();
+
+		if (world->DoesIntersectWall(GetBounds()))
+		{
+
+		}
+		else
+		{
+			m_position = end_position;
+		}
+
 	}
-	else if (m_position.x > m_goal_position.x)
-	{
-		m_position.x -= knockbackScale;
-	}
-	else if (m_position.y < m_goal_position.y)
-	{
-		m_position.y += knockbackScale;
-	}
-	else if (m_position.y > m_goal_position.y)
-	{
-		m_position.y -= knockbackScale;
-	}
-	else
-	{
-		m_position = m_goal_position;
-	}
+
+
+
 }
 
 void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type)
@@ -157,7 +177,7 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 	{
 		m_health -= damage;
 		m_knockback_time = 30.0f;
-
+		m_damage_time = 60.0f;
 		if (type == MeleeDamage)
 		{
 
@@ -167,11 +187,11 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 			sf::Vector2f delta = (pos - m_position);
 
-			sf::Vector2f end = m_position - (sf::Vector2f(std::cos(angle), std::sin(angle))) * 200.0f;
-			m_goal_position = m_position;
+			sf::Vector2f end = m_position - (sf::Vector2f(std::cos(angle), std::sin(angle))) * 1.0f;
+			m_goal_position = end;
 
 			int maxSteps = 50;
-			while (true)
+			/*while (true)
 			{
 
 				if (world->GetIntersection(m_goal_position))
@@ -202,7 +222,7 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 				maxSteps--;
 	
-			}
+			}*/
 		}
 		else
 		{
@@ -216,9 +236,9 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 bool LocalPlayer::CheckSwordCollision(const sf::FloatRect& target)
 {
-	if (m_attack_stage > 0.0f && m_sword->getGlobalBounds().intersects(target) && globals->tick_count > m_last_attack_tick)
+	if (m_attack_stage > 0.1f && m_sword->getGlobalBounds().intersects(target) && globals->tick_count > (m_last_attack_tick + 128))
 	{
-		m_last_attack_tick = INT_MAX;
+		m_last_attack_tick = globals->tick_count;
 		return true;
 	}
 
@@ -286,7 +306,7 @@ void LocalPlayer::Process(float frameTime)
 
 	if (m_knockback_time > 0.0f)
 	{
-		DoKnockbackMove();
+		DoKnockbackMove(frameTime);
 	}
 	else
 	{
@@ -300,10 +320,7 @@ void LocalPlayer::Process(float frameTime)
 	{
 		m_attack_stage -= frameTime * 35.0f;
 	}
-	else
-	{
-		m_last_attack_tick = 0;
-	}
+
 
 
 	if (m_current_animation != m_last_animation)
@@ -317,6 +334,11 @@ void LocalPlayer::Process(float frameTime)
 	if (m_knockback_time > 0.0f)
 	{
 		m_knockback_time -= frameTime * 100.0f;
+	}
+
+	if (m_damage_time > 0.0f)
+	{
+		m_damage_time -= frameTime * 100.0f;
 	}
 
 	m_last_animation = m_current_animation;
@@ -453,6 +475,32 @@ void LocalPlayer::Render(sf::RenderWindow& renderWindow)
 
 	}
 }
+
+
+void LocalPlayer::RenderHud(sf::RenderWindow& renderWindow)
+{
+	if (m_render_state == RenderState::Draw && IsAlive())
+	{
+		//Draw current player health
+		for (int i = 0; i < GetHealth(); i += 50)
+		{
+			renderWindow.draw(*m_heart_shape);
+
+			m_heart_shape->setPosition(sf::Vector2f(float(i / (i > 0 ? 2 : 1) + 5), 10));
+		}
+
+		if (m_knockback_time > 0.0f)
+		{
+			sf::Color col = m_damage_indicator->getOutlineColor();
+			float damage_progress = m_damage_time / 60.0f;
+			col.a = (255 * damage_progress);
+			m_damage_indicator->setOutlineColor(col);
+			renderWindow.draw(*m_damage_indicator);
+		}
+
+	}
+}
+
 
 void LocalPlayer::SetPosition(const sf::Vector2f& pos)
 {

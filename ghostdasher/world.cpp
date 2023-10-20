@@ -15,6 +15,7 @@ World::World()
 	SetRenderState(RenderState::Draw);
 	m_unwalkable_spaces.clear();
 	m_waypoint_size = 100.0f;
+	m_potential_objects.clear();
 }
 
 void World::AddUnwalkableSpace(const sf::FloatRect& space)
@@ -80,7 +81,7 @@ bool World::IsInViewBounds(const sf::Vector2f& pos)
 bool World::DoesIntersectWall(const sf::FloatRect& target)
 {
 	const float shrinkScale = 0;
-	for (auto& it : m_unwalkable_spaces)
+	for (auto& it : GetUnwalkableSpaces())
 	{
 		sf::FloatRect shrunk = it;
 		shrunk.left += shrinkScale;
@@ -131,7 +132,10 @@ void World::UpdateUnwalkableSpaces()
 	std::vector<sf::FloatRect> entity_pos;
 	for (auto& it : entityManager->GetEntitiesByType<Crate*>())
 	{
-		entity_pos.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, it->GetBounds().width, it->GetBounds().height));
+		if (!it->IsBroken())
+		{
+			entity_pos.push_back(sf::FloatRect(it->GetBounds().left, it->GetBounds().top, it->GetBounds().width, it->GetBounds().height));
+		}
 	}
 	for (auto& it : entityManager->GetEntitiesByType<Door*>())
 	{
@@ -198,7 +202,7 @@ bool World::TryMovement(Entity* ent)
 
 	return can_move;
 }
-void World::UpdateIntersectingEntities()
+/*void World::UpdateIntersectingEntities()
 {
 	m_intersecting_entity_positions.clear();
 	for (auto& it : entityManager->GetEntitiesByType<Hostile*>())
@@ -206,7 +210,7 @@ void World::UpdateIntersectingEntities()
 		m_intersecting_entity_positions.push_back(sf::FloatRect(it->GetPosition().x, it->GetPosition().y, 5, 5));
 	}
 
-}
+}*/
 
 int World::GetIntersection(const sf::Vector2f& position, const sf::Vector2f& ent, bool first)
 {
@@ -218,8 +222,8 @@ int World::GetIntersection(const sf::Vector2f& position, const sf::Vector2f& ent
 	for (auto& it : GetUnwalkableSpaces())
 	{
 
-		if (it.left == ent.x && it.top && ent.x)
-			continue;
+		//if (it.left == ent.x && it.top && ent.x)
+		//	continue;
 
 		float x = it.left - 20;
 		float y = it.top - 20;
@@ -279,7 +283,16 @@ void World::Render(sf::RenderWindow& renderWindow)
 		renderWindow.draw(*m_shape.get());
 	}
 }
-
+void World::RenderExtra(sf::RenderWindow& renderWindow)
+{
+	if (m_render_state == RenderState::Draw)
+	{
+		for (const auto& it : m_potential_objects)
+		{
+			renderWindow.draw(*it->m_shape.get());
+		}
+	}
+}
 void World::SetPosition(const sf::Vector2f& pos)
 {
 	m_position = pos;
@@ -320,4 +333,55 @@ sf::Vector2f World::GetFurthestSpawnpoint(const sf::Vector2f& pos)
 	}
 
 	return furthest_point;
+}
+
+void World::LoadPotentialObject(const tmx::Object& object)
+{
+	bool have_tag = false;
+	
+	for (const auto& it : m_potential_objects)
+	{
+		if (!it->m_name.size())
+			continue;
+
+		if (it->m_name == object.getClass() && it->m_generated)
+		{
+			have_tag = true;
+		}
+	}
+
+	if (!have_tag)
+	{
+		bool generate = rand() % 2;
+
+		if (!object.getClass().size())
+		{
+			generate = rand() % 10 < 7;
+		}
+
+		if (generate)
+		{
+			if (object.getClass() == "crate")
+			{
+				entityManager->AddEntity(std::make_unique<Crate>(sf::Vector2f(object.getPosition().x, object.getPosition().y)));
+			}
+			else
+			{
+				std::unique_ptr<GeneratedObject> gen_object = std::make_unique<GeneratedObject>();
+
+				gen_object->m_name = object.getClass();
+				gen_object->m_bounds = sf::FloatRect(object.getAABB().left, object.getAABB().top, object.getAABB().width, object.getAABB().height);
+				gen_object->m_generated = true;
+
+				gen_object->m_shape = std::make_unique<sf::RectangleShape>();
+				gen_object->m_shape->setSize(sf::Vector2f(gen_object->m_bounds.width, gen_object->m_bounds.height));
+				gen_object->m_shape->setPosition(sf::Vector2f(gen_object->m_bounds.left, gen_object->m_bounds.top));
+				gen_object->m_shape->setFillColor(sf::Color::Black);
+
+				AddUnwalkableSpace(gen_object->m_bounds);
+
+				m_potential_objects.push_back(std::move(gen_object));
+			}
+		}
+	}
 }

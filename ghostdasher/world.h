@@ -1,6 +1,7 @@
 #pragma once
 #include "global-includes.h"
 #include "entity.h"
+#include <tmxlite/Map.hpp>
 
 struct Waypoint
 {
@@ -17,6 +18,15 @@ struct Waypoint
 		return g_cost + h_cost;
 	}
 };
+
+struct GeneratedObject
+{
+	std::string m_name;
+	sf::FloatRect m_bounds;
+	std::unique_ptr<sf::RectangleShape> m_shape;
+	bool m_generated;
+};
+
 class World : public Entity
 {
 public:
@@ -34,6 +44,8 @@ public:
 	std::vector<sf::FloatRect> GetUnwalkableSpaces();
 	sf::Vector2f GetRandomSpawnPoint();
 	sf::Vector2f GetFurthestSpawnpoint(const sf::Vector2f&);
+	void LoadPotentialObject(const tmx::Object&);
+	void RenderExtra(sf::RenderWindow& renderWindow);
 
 	void SetBounds(const sf::Vector2f& bounds)
 	{
@@ -89,6 +101,9 @@ private:
 	std::vector<Waypoint> m_points;
 	std::vector<sf::Vector2f> m_spawnpoints;
 	std::vector<sf::FloatRect> m_intersecting_entity_positions;
+
+	std::vector<std::unique_ptr<GeneratedObject>> m_potential_objects;
+
 	sf::Vector2f m_boss_position;
 	sf::Vector2f m_view_position;
 	sf::Vector2f m_view_size;

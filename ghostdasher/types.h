@@ -19,7 +19,8 @@ enum EntityType
 	DoorButtonEntity,
 	DoorEntity,
 	ScaredHostileEntity,
-	BouncingBossEntity
+	BouncingBossEntity,
+	ProjectileEntity
 };
 
 enum EntityCategory

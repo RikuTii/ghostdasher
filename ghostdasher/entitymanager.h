@@ -22,9 +22,10 @@ public:
 	std::vector<T> GetEntitiesByType()
 	{
 		std::vector<T> m_ents;
+		m_ents.clear();
 		for (const auto& it : m_entities)
 		{
-			if (it && !it->GetMarkedForDeletion() && it.get())
+			if (it && it.get() && !it->GetMarkedForDeletion())
 			{
 				auto ent = dynamic_cast<T>(it.get());
 				if (ent)
@@ -41,13 +42,17 @@ public:
 	template<class T>
 	T* AddEntity(std::unique_ptr<T> m_entity)
 	{
-		m_entities.emplace_back(std::move(m_entity));
+		T* ptr_memory = dynamic_cast<T*>(m_entity.get());
 
-		m_entities.back().get()->SetEntityIndex(m_entities.size());
+		m_entities.push_back(std::move(m_entity));
+
+		m_entities.back().get()->SetEntityIndex(m_entity_counter_index);
 
 		m_highest_entity_index = m_entities.size() + 1;
 
-		return dynamic_cast<T*>(m_entities.back().get());
+		m_entity_counter_index++;
+
+		return ptr_memory;
 	}
 
 
@@ -69,13 +74,14 @@ public:
 
 	size_t GetHighestEntityIndex()
 	{
-		return m_entities.size();
+		return m_entities.size() + 1;
 	}
 private:
-	std::vector<std::unique_ptr<Entity>> m_entities;
+	std::list<std::unique_ptr<Entity>> m_entities;
 	std::unique_ptr<LocalPlayer> m_localplayer;
 	std::unique_ptr<World> m_world;
 	size_t m_highest_entity_index;
+	size_t m_entity_counter_index;
 };
 
 extern std::unique_ptr<EntityManager> entityManager;

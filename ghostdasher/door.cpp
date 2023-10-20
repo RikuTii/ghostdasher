@@ -66,12 +66,9 @@ void Door::Process(float frameTime)
 	if (m_active_trigger && !m_closing)
 	{
 		LocalPlayer* player = entityManager->GetLocalPlayer();
-		World* world = entityManager->GetWorld();
 		if (player->GetBounds().intersects(m_trigger_position))
 		{
-			entityManager->AddEntity(std::make_unique<BouncingBoss>(world->GetBossPosition()));
 			m_closing = true;
-			world->TriggerBossfight();
 			m_active_trigger = false;
 		}
 	}
@@ -84,6 +81,9 @@ void Door::Process(float frameTime)
 		}
 		else
 		{
+			World* world = entityManager->GetWorld();
+			entityManager->AddEntity(std::make_unique<BouncingBoss>(world->GetBossPosition()));
+			world->TriggerBossfight();
 			m_closing = false;
 			m_opening = false;
 		}

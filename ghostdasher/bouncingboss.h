@@ -42,4 +42,5 @@ private:
 	float m_bounce_angle;
 	float m_total_health;
 	float m_bounce_knockback;
+	float m_start_time;
 };
