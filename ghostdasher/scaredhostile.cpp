@@ -73,25 +73,27 @@ void ScaredHostile::PlayAnimation(float frameTime)
 
 void ScaredHostile::TakeDamage(const int amount, FacingDirection dir)
 {
-
-	m_health -= amount;
-	if (m_health <= 0)
+	if ((globals->tick_count - m_last_damage_tick) > 50)
 	{
-		Delete();
+		m_health -= amount;
+		if (m_health <= 0)
+		{
+			Delete();
+		}
+
+		m_knockback_time = 5.0f;
+
+		m_last_damage_tick = globals->tick_count;
+
+		CalculateKnockback(dir);
+
+		m_retreat_time = 1350.0f;
+
+
+		World* world = entityManager->GetWorld();
+
+		m_target_position = world->GetFurthestSpawnpoint(m_position);
 	}
-
-	m_knockback_time = 5.0f;
-
-	m_last_damage_tick = globals->tick_count;
-
-	CalculateKnockback(dir);
-
-	m_retreat_time = 1350.0f;
-
-
-	World* world = entityManager->GetWorld();
-
-	m_target_position = world->GetFurthestSpawnpoint(m_position);
 	
 }
 

@@ -10,12 +10,12 @@ LocalPlayer::LocalPlayer()
 
 	m_shape->setOrigin(sf::Vector2f(float(m_texture_sprite_size.width / 2), float(m_texture_sprite_size.height / 2)));
 
-	m_sword = std::make_unique<sf::RectangleShape>();
-	m_sword->setSize(sf::Vector2f(10, 100));
-	m_sword->setOrigin(sf::Vector2f(0, 100));
+	m_sword = std::make_unique<sf::Sprite>();
+
+	//m_sword->setOrigin(sf::Vector2f(0, 100));
 	m_sword->setPosition(m_position);
-	m_sword->setOutlineColor(sf::Color::Magenta);
-	m_sword->setOutlineThickness(2);
+	m_sword->setOrigin(sf::Vector2f(0, 50));
+	m_sword->setScale(3.0f, 3.0f);
 
 
 	m_heart_shape = std::make_unique<sf::CircleShape>();;
@@ -23,7 +23,6 @@ LocalPlayer::LocalPlayer()
 	m_heart_shape->setRadius(10.0f);
 	m_heart_shape->setFillColor(sf::Color::Black);
 	m_heart_shape->setOutlineThickness(2);
-
 
 	m_damage_indicator = std::make_unique<sf::CircleShape>();
 	m_damage_indicator->setOutlineColor(sf::Color::Red);
@@ -33,12 +32,23 @@ LocalPlayer::LocalPlayer()
 	m_damage_indicator->setPosition(sf::Vector2f(window->getDefaultView().getSize().x / 2 - m_damage_indicator->getLocalBounds().width / 2, 
 		window->getDefaultView().getSize().y / 2 - m_damage_indicator->getLocalBounds().height / 2));
 
+
+	m_respawn_background = std::make_unique<sf::RectangleShape>();
+	m_respawn_background->setSize(sf::Vector2f(float(window->getSize().x), float(window->getSize().y)));
+	m_respawn_background->setFillColor(sf::Color::Transparent);
+
+	m_death_text = std::make_unique<sf::Text>();
+	m_death_text->setFillColor(sf::Color::Red);
+	m_death_text->setCharacterSize(60);
+	m_death_text->setFont(resourceManager->GetPrimaryFont());
+	m_death_text->setString("YOU DIED");
+	m_death_text->setPosition(window->getSize().x / 2 - m_death_text->getGlobalBounds().width / 2, window->getSize().y / 2 - m_death_text->getGlobalBounds().height / 2);
+
 	m_shape->setPosition(m_position);
 
 	m_sprite_scale = sf::Vector2f(1.2f, 1.2f);
 
 	m_shape->setScale(m_sprite_scale);
-
 
 	m_render_state = RenderState::Draw;
 	m_type = EntityType::LocalplayerEntity;
@@ -48,15 +58,28 @@ LocalPlayer::LocalPlayer()
 	m_total_animation_frames = 3;
 	m_animation_frame = 0;
 
-
 	m_max_health = 400;
 
 	m_health = m_max_health;
 
-
 	LoadTextures();
 }
 
+
+void LocalPlayer::Respawn()
+{
+	m_health = m_max_health;
+	m_attack_stage = 0.0f;
+	m_death_time = 0.0f;
+	m_attack_angle = 0.0f;
+	m_dash_time = 0.0f;
+	m_animation_time = 0.0f;
+	m_last_attack_tick = 0;
+	m_last_attack_time = 0.0f;
+	m_last_damage_tick = 0;
+	m_last_velocity = sf::Vector2f();
+	m_damage_time = 0.0f;
+}
 
 void LocalPlayer::LoadTextures()
 {
@@ -71,6 +94,17 @@ void LocalPlayer::LoadTextures()
 	if (idle_texture.has_value())
 	{
 		m_idle_texture = idle_texture.value();
+	}
+
+	std::optional<sf::Texture*> sword_texture = resourceManager->GetTexture("Sword");
+	if (sword_texture.has_value())
+	{
+		m_sword_texture = sword_texture.value();
+
+		m_sword->setTexture(*m_sword_texture);
+
+		m_sword->setTextureRect(sf::IntRect(0, 0, 15, 51));
+
 	}
 
 }
@@ -130,7 +164,6 @@ void LocalPlayer::PlayAnimation(float frameTime)
 			}
 		}
 		m_shape->setTextureRect(texture_rect);
-	//	m_shape->setTexture(*m_texture);
 		m_animation_time = 12.0f;
 	}
 
@@ -156,28 +189,27 @@ void LocalPlayer::DoKnockbackMove(float frameTime)
 
 		World* world = entityManager->GetWorld();
 
-		if (world->DoesIntersectWall(GetBounds()))
-		{
-
-		}
-		else
+		if (!world->DoesIntersectWall(GetBounds()))
 		{
 			m_position = end_position;
+
 		}
-
 	}
-
-
-
 }
 
 void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type)
 {
-	if ((globals->tick_count - m_last_damage_tick) > 256)
+	if ((globals->tick_count - m_last_damage_tick) > 256 && IsAlive())
 	{
 		m_health -= damage;
 		m_knockback_time = 30.0f;
 		m_damage_time = 60.0f;
+
+		if (m_health <= 0)
+		{
+			m_death_time = 100.0f;
+		}
+
 		if (type == MeleeDamage)
 		{
 
@@ -189,40 +221,6 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 			sf::Vector2f end = m_position - (sf::Vector2f(std::cos(angle), std::sin(angle))) * 1.0f;
 			m_goal_position = end;
-
-			int maxSteps = 50;
-			/*while (true)
-			{
-
-				if (world->GetIntersection(m_goal_position))
-					break;
-
-				if ((m_goal_position.x - end.x) < -3.0f)
-				{
-					m_goal_position.x += 2.0f;
-				}
-				else if((m_goal_position.x - end.x) > 3.0f)
-				{
-					m_goal_position.x -= 2.0f;
-				}
-
-				if ((m_goal_position.y - end.y) < -3.0f)
-				{
-					m_goal_position.y += 2.0f;
-				}
-				else if ((m_goal_position.y - end.y) > 3.0f)
-				{
-					m_goal_position.x -= 2.0f;
-				}
-
-
-				if (maxSteps < 0)
-					break;
-
-
-				maxSteps--;
-	
-			}*/
 		}
 		else
 		{
@@ -236,9 +234,8 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 bool LocalPlayer::CheckSwordCollision(const sf::FloatRect& target)
 {
-	if (m_attack_stage > 0.1f && m_sword->getGlobalBounds().intersects(target) && globals->tick_count > (m_last_attack_tick + 128))
+	if (m_attack_stage > 0.1f && m_sword->getGlobalBounds().intersects(target))
 	{
-		m_last_attack_tick = globals->tick_count;
 		return true;
 	}
 
@@ -256,6 +253,17 @@ void LocalPlayer::DoAttack()
 
 void LocalPlayer::Process(float frameTime)
 {
+
+	if (!IsAlive() && m_death_time > 0.0f)
+	{
+		sf::Color col = m_respawn_background->getFillColor();
+		float death_progress = m_death_time / 100.0f;
+		col.a = std::min(255 - sf::Uint8(255 * death_progress), 255);
+		m_respawn_background->setFillColor(col);
+		m_death_time -= frameTime * 50.0f;
+		return;
+	}
+
 	m_shape->setPosition(m_position);
 	m_sword->setPosition(m_position);
 	if (m_facing == Right)
@@ -493,11 +501,15 @@ void LocalPlayer::RenderHud(sf::RenderWindow& renderWindow)
 		{
 			sf::Color col = m_damage_indicator->getOutlineColor();
 			float damage_progress = m_damage_time / 60.0f;
-			col.a = (255 * damage_progress);
+			col.a = sf::Uint8(255 * damage_progress);
 			m_damage_indicator->setOutlineColor(col);
 			renderWindow.draw(*m_damage_indicator);
 		}
-
+	}
+	else if (m_render_state == RenderState::Draw && !IsAlive())
+	{
+		renderWindow.draw(*m_respawn_background);
+		renderWindow.draw(*m_death_text);
 	}
 }
 

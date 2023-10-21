@@ -97,25 +97,28 @@ void BouncingBoss::PlayAnimation(float frameTime)
 
 void BouncingBoss::TakeDamage(const int amount, const sf::Vector2f& dir)
 {
-	m_health -= amount;
-	if (m_health <= 0)
+	if ((globals->tick_count - m_last_damage_tick) > 50)
 	{
-		Delete();
+		m_health -= amount;
+		if (m_health <= 0)
+		{
+			Delete();
+		}
+
+		m_last_damage_tick = globals->tick_count;
+
+		sf::Vector2f delta = (m_position - dir);
+
+		float angle = atan2f(dir.x - m_position.x, dir.y - m_position.y) * (180 / M_PI);
+
+		float perc = (m_health / m_total_health);
+
+		m_health_fill->setSize(sf::Vector2f(m_health_background->getSize().x - (m_health_background->getSize().x * (1.0f - perc)), m_health_fill->getSize().y));
+
+		m_bounce_angle = -((angle + 90.0f) * (M_PI / 180.0f));
+
+		m_bounce_knockback = 35.0f;
 	}
-
-	m_last_damage_tick = globals->tick_count;
-
-	sf::Vector2f delta = (m_position - dir);
-
-	float angle = atan2f(dir.x - m_position.x, dir.y - m_position.y) * (180 / M_PI);
-
-	float perc = (m_health / m_total_health);
-
-	m_health_fill->setSize(sf::Vector2f(m_health_background->getSize().x - (m_health_background->getSize().x * (1.0f - perc)), m_health_fill->getSize().y));
-
-	m_bounce_angle = -((angle + 90.0f) * (M_PI / 180.0f));
-
-	m_bounce_knockback = 35.0f;
 }
 
 

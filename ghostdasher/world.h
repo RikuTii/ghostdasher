@@ -46,17 +46,15 @@ public:
 	sf::Vector2f GetFurthestSpawnpoint(const sf::Vector2f&);
 	void LoadPotentialObject(const tmx::Object&);
 	void RenderExtra(sf::RenderWindow& renderWindow);
+	void Reset();
+	std::vector<Waypoint> GenerateWayPoints();
+	void UpdateUnwalkableSpaces();
 
 	void SetBounds(const sf::Vector2f& bounds)
 	{
 		m_bounds = bounds;
 		m_shape->setSize(m_bounds);
 	}
-	void UpdateIntersectingEntities();
-
-	std::vector<Waypoint> GenerateWayPoints();
-
-	void UpdateUnwalkableSpaces();
 
 	void UpdateView(const sf::Vector2f& pos, const sf::Vector2f& size)
 	{

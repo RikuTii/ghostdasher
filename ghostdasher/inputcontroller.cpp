@@ -4,7 +4,6 @@
 
 void InputController::ReadInput(float frameTime)
 {
-
 	sf::Vector2f velocity;
 	velocity.x = 0.0f;
 	velocity.y = 0.0f;
@@ -31,12 +30,6 @@ void InputController::ReadInput(float frameTime)
 		m_localplayer->SetFacing(Right);
 	}
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::F))
-	{
-	//	m_localplayer->ResetOrigin();
-		m_localplayer->Respawn();
-	}
-
 	if (velocity.x > 0.0f || velocity.x < 0.0f)
 	{
 		if (velocity.y > 0.0f || velocity.y < 0.0f)
@@ -44,7 +37,6 @@ void InputController::ReadInput(float frameTime)
 			velocity.y /= 2.0f;
 		}
 	}
-
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::E))
 	{
@@ -63,7 +55,6 @@ void InputController::ReadInput(float frameTime)
 	{
 		wasDashPressed = false;
 	}
-
 
 	m_localplayer->SetGoalVelocity(velocity);
 }

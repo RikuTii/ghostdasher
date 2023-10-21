@@ -76,4 +76,12 @@ void ResourceManager::Loadresources()
             m_textures.insert({ "Boss", std::move(texture) });
         }
     }
+
+    {
+        auto texture = std::make_unique<sf::Texture>();
+        if (texture->loadFromFile("../assets/player/Sword.png"))
+        {
+            m_textures.insert({ "Sword", std::move(texture) });
+        }
+    }
 }

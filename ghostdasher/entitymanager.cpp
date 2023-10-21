@@ -4,6 +4,7 @@ std::unique_ptr<EntityManager> entityManager;
 EntityManager::EntityManager()
 {
 	m_highest_entity_index = 0;
+	m_entity_counter_index = 0;
 }
 
 

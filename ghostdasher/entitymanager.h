@@ -46,7 +46,7 @@ public:
 
 		m_entities.push_back(std::move(m_entity));
 
-		m_entities.back().get()->SetEntityIndex(m_entity_counter_index);
+		m_entities.back().get()->SetEntityIndex(m_highest_entity_index);
 
 		m_highest_entity_index = m_entities.size() + 1;
 

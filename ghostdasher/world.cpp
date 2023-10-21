@@ -16,6 +16,16 @@ World::World()
 	m_unwalkable_spaces.clear();
 	m_waypoint_size = 100.0f;
 	m_potential_objects.clear();
+	m_points.clear();
+}
+
+
+void World::Reset()
+{
+	m_unwalkable_spaces.clear();
+	m_potential_objects.clear();
+	m_points.clear();
+	m_is_boss_fight = false;
 }
 
 void World::AddUnwalkableSpace(const sf::FloatRect& space)
@@ -47,7 +57,7 @@ bool World::IsPointVisible(const sf::Vector2f& start, const sf::Vector2f& end)
 		return false;
 	}
 
-	for (auto& it : m_unwalkable_spaces)
+	for (auto& it : GetUnwalkableSpaces())
 	{
 		if (traceStart.getGlobalBounds().intersects(it) && traceStartBottom.getGlobalBounds().intersects(it))
 		{

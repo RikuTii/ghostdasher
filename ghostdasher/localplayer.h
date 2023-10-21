@@ -20,11 +20,7 @@ public:
 	void TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type = MeleeDamage);
 	void PlayAnimation(float frameTime);
 	void DoAttack();
-
-	void Respawn()
-	{
-		m_health = 200;
-	}
+	void Respawn();
 
 	bool Heal(int amount)
 	{
@@ -75,10 +71,14 @@ private:
 	std::unique_ptr<sf::Sprite> m_shape;
 	std::unique_ptr<sf::CircleShape> m_heart_shape;
 	std::unique_ptr<sf::CircleShape> m_damage_indicator;
+	std::unique_ptr<sf::Text> m_death_text;
+	std::unique_ptr<sf::Sprite> m_sword;
+	std::unique_ptr<sf::RectangleShape> m_respawn_background;
 
+	float m_death_time;
 	sf::Texture* m_texture;
+	sf::Texture* m_sword_texture;
 	sf::Texture* m_idle_texture;
-	std::unique_ptr<sf::RectangleShape> m_sword;
 	sf::IntRect m_texture_sprite_size;
 	sf::Vector2f m_sprite_scale;
 	Animation m_last_animation;
