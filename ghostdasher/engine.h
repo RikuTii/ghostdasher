@@ -45,6 +45,11 @@ public:
 		return sf::Vector2f();
 	}
 
+	std::string GetMapName()
+	{
+		return m_map_name;
+	}
+
 	enum MenuOption
 	{
 		PlayButton,

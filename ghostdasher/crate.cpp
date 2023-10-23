@@ -70,7 +70,7 @@ void Crate::Break()
 
 		m_goal_position = m_position + sf::Vector2f(rand() % 2 > 0 ? x : -x, rand() % 2 > 0 ? y : -y);
 		m_shape->setTexture(*m_potion_texture);
-		m_break_speed = 800.0f;
+		m_break_speed = 1000.0f;
 		m_texture_sprite_size = sf::IntRect(0, 0, 16, 16);
 		m_shape->setTextureRect(m_texture_sprite_size);
 

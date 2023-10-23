@@ -236,7 +236,7 @@ bool Engine::Run(LocalPlayer* localplayer, InputController* input)
 
 			float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
-			if (dist < 30.0f)
+			if (dist < 60.0f)
 			{
 				localplayer->TakeDamage(50, hostile->GetPosition());
 			}
@@ -255,7 +255,7 @@ bool Engine::Run(LocalPlayer* localplayer, InputController* input)
 
 		float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
-		if (dist < 30.0f)
+		if (dist < 60.0f)
 		{
 			localplayer->TakeDamage(50, it->GetPosition());
 		}

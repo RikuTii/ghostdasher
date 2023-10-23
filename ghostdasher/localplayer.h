@@ -99,5 +99,7 @@ private:
 	int m_last_damage_tick;
 	int m_last_attack_tick;
 	float m_knockback_time;
+	float m_respawn_time;
+	float m_respawn_delay;
 	FacingDirection m_facing;
 };

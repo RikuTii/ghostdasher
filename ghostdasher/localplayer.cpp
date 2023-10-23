@@ -1,6 +1,7 @@
 #include "localplayer.h"
 #include "entitymanager.h"
 #include "window.h"
+#include "engine.h"
 
 LocalPlayer::LocalPlayer()
 {
@@ -185,7 +186,7 @@ void LocalPlayer::DoKnockbackMove(float frameTime)
 	const float veclen = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 	if (veclen > 0.9f && veclen < 100.0f)
 	{
-		sf::Vector2f end_position = m_position + (sf::Vector2f(delta.x, delta.y) / (veclen * ((m_knockback_time / 30.0f))) * frameTime * 250.0f);
+		sf::Vector2f end_position = m_position + (sf::Vector2f(delta.x, delta.y) / (veclen * ((m_knockback_time / 30.0f))) * frameTime * 850.0f);
 
 		World* world = entityManager->GetWorld();
 
@@ -199,7 +200,7 @@ void LocalPlayer::DoKnockbackMove(float frameTime)
 
 void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageType type)
 {
-	if ((globals->tick_count - m_last_damage_tick) > 256 && IsAlive())
+	if ((globals->tick_count - m_last_damage_tick) > 128 && IsAlive())
 	{
 		m_health -= damage;
 		m_knockback_time = 30.0f;
@@ -212,13 +213,10 @@ void LocalPlayer::TakeDamage(const int damage, const sf::Vector2f& pos, DamageTy
 
 		if (type == MeleeDamage)
 		{
-
 			World* world = entityManager->GetWorld();
 
 			float angle = atan2f(pos.x - m_position.x, pos.y - m_position.y);
-
 			sf::Vector2f delta = (pos - m_position);
-
 			sf::Vector2f end = m_position - (sf::Vector2f(std::cos(angle), std::sin(angle))) * 1.0f;
 			m_goal_position = end;
 		}
@@ -261,6 +259,36 @@ void LocalPlayer::Process(float frameTime)
 		col.a = std::min(255 - sf::Uint8(255 * death_progress), 255);
 		m_respawn_background->setFillColor(col);
 		m_death_time -= frameTime * 50.0f;
+
+		if (m_death_time <= 0.0f)
+		{
+			engine->LoadMap(this, engine->GetMapName());
+			m_health = 0;
+			m_respawn_delay = 200.0f;
+		}
+		return;
+	}
+	else if (!IsAlive() && m_respawn_delay > 0.0f)
+	{
+		m_respawn_delay -= frameTime * 50.0f;
+		if (m_respawn_delay <= 0.0f)
+		{
+			m_respawn_time = 50.0f;
+		}
+	}
+	else if (!IsAlive() && m_respawn_time > 0.0f)
+	{	
+		sf::Color col = m_respawn_background->getFillColor();
+		float respawn_progress = m_respawn_time / 50.0f;
+		col.a = std::min((int)sf::Uint8(255 * respawn_progress), 255);
+		m_respawn_background->setFillColor(col);
+
+		m_respawn_time -= frameTime * 50.0f;
+
+		if (m_respawn_time <= 0.0f)
+		{
+			m_health = m_max_health;
+		}
 		return;
 	}
 
@@ -275,7 +303,6 @@ void LocalPlayer::Process(float frameTime)
 	{
 		m_shape->setScale(sf::Vector2f(m_sprite_scale.x, m_sprite_scale.y));
 	}
-
 
 	if (m_velocity_goal.x > 10.1f || m_velocity_goal.x < -10.1f || (m_velocity_goal.y > 10.1f || m_velocity_goal.y < -10.1f) || m_attack_stage > 0.0f)
 	{
@@ -323,13 +350,10 @@ void LocalPlayer::Process(float frameTime)
 
 	m_sword->setRotation(m_attack_angle - (m_attack_stage * 45.0f));
 
-
 	if (m_attack_stage > 0.0f)
 	{
 		m_attack_stage -= frameTime * 35.0f;
 	}
-
-
 
 	if (m_current_animation != m_last_animation)
 	{
@@ -350,7 +374,6 @@ void LocalPlayer::Process(float frameTime)
 	}
 
 	m_last_animation = m_current_animation;
-
 }
 
 
@@ -423,9 +446,7 @@ void LocalPlayer::ProcessMovement(float frameTime)
 		}
 	}
 
-
 	m_velocity = m_velocity_goal;
-
 
 	sf::Vector2f old_position = m_position;
 	sf::Vector2f old_velocity = m_velocity;
@@ -435,11 +456,9 @@ void LocalPlayer::ProcessMovement(float frameTime)
 	if (!world->TryMovement(this))
 	{
 		m_position = old_position;
-
 	}
 
 	m_sword->setRotation(m_attack_angle - (m_attack_stage * 45.0f));
-
 
 	const float friction = 0.8f;
 
@@ -470,7 +489,6 @@ void LocalPlayer::ProcessMovement(float frameTime)
 			m_velocity.y = std::fmin(m_velocity.y * friction, 0.0f);
 		}
 	}
-
 }
 
 void LocalPlayer::Render(sf::RenderWindow& renderWindow)
@@ -480,10 +498,8 @@ void LocalPlayer::Render(sf::RenderWindow& renderWindow)
 		if (m_attack_stage > 0.0f)
 			renderWindow.draw(*m_sword.get());
 		renderWindow.draw(*m_shape.get());
-
 	}
 }
-
 
 void LocalPlayer::RenderHud(sf::RenderWindow& renderWindow)
 {
@@ -493,7 +509,6 @@ void LocalPlayer::RenderHud(sf::RenderWindow& renderWindow)
 		for (int i = 0; i < GetHealth(); i += 50)
 		{
 			renderWindow.draw(*m_heart_shape);
-
 			m_heart_shape->setPosition(sf::Vector2f(float(i / (i > 0 ? 2 : 1) + 5), 10));
 		}
 
@@ -509,10 +524,12 @@ void LocalPlayer::RenderHud(sf::RenderWindow& renderWindow)
 	else if (m_render_state == RenderState::Draw && !IsAlive())
 	{
 		renderWindow.draw(*m_respawn_background);
-		renderWindow.draw(*m_death_text);
+		if (m_respawn_time <= 0.0f)
+		{
+			renderWindow.draw(*m_death_text);
+		}
 	}
 }
-
 
 void LocalPlayer::SetPosition(const sf::Vector2f& pos)
 {
